@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-sync>
+        <include domain="sharedpref" path="."/>
+        <exclude domain="sharedpref" path="auth.xml"/>
+    </cloud-sync>
+</data-extraction-rules>

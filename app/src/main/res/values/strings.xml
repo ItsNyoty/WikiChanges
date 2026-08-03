@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WikiChanges</string>
+
+    <!-- General actions -->
+    <string name="wiki_selector">Wiki</string>
+    <string name="refresh">Refresh</string>
+    <string name="settings">Settings</string>
+    <string name="filters">Filters</string>
+    <string name="load_more">Load more</string>
+    <string name="retry">Retry</string>
+    <string name="cancel">Cancel</string>
+    <string name="execute">Run</string>
+    <string name="close">Close</string>
+    <string name="delete">Delete</string>
+
+    <!-- Loading / empty / error -->
+    <string name="loading">Loading…</string>
+    <string name="no_changes_found">No recent changes found</string>
+    <string name="unknown_error">Unknown error</string>
+    <string name="error_loading">Error loading changes</string>
+
+    <!-- Filters -->
+    <string name="filter_only_anon">Only anonymous</string>
+    <string name="filter_hide_bots">Hide bots</string>
+    <string name="filter_only_unpatrolled">Only unpatrolled</string>
+    <string name="filter_hide_new_pages">Hide new pages</string>
+    <string name="filter_hide_minor">Hide minor edits</string>
+    <string name="filter_namespace">Namespace</string>
+    <string name="filter_sort">Sort</string>
+    <string name="filter_sort_newest">Newest first</string>
+    <string name="filter_sort_oldest">Oldest first</string>
+    <string name="filter_max">Max</string>
+    <string name="filter_auto_refresh">Auto-refresh (sec)</string>
+    <string name="auto_refresh_off_hint">0 = off</string>
+
+    <!-- Change card -->
+    <string name="unknown_page">Unknown page</string>
+    <string name="unknown_user">unknown</string>
+    <string name="user_colon">User: %1$s</string>
+    <string name="action_good">Good</string>
+    <string name="action_bad">Bad</string>
+    <string name="action_warning">Send warning</string>
+    <string name="action_rollback">Rollback</string>
+    <string name="action_block">Block user</string>
+    <string name="action_diff">Diff</string>
+    <string name="choose_action">Choose action</string>
+    <string name="no_right_suffix">(no right)</string>
+
+    <!-- Reason dialog -->
+    <string name="reason_placeholder">Reason / note</string>
+    <string name="reason_rollback">Rollback reason</string>
+    <string name="reason_warning">Warning template option</string>
+    <string name="reason_block">Block reason</string>
+
+    <!-- Diff -->
+    <string name="diff_title">Diff</string>
+
+    <!-- Result messages -->
+    <string name="change_patrolled">Change %1$s marked as patrolled</string>
+    <string name="change_rollbacked">Change %1$s rolled back</string>
+    <string name="user_warned">User %1$s warned</string>
+    <string name="user_blocked">User %1$s blocked</string>
+    <string name="already_patrolled">Change was already patrolled</string>
+
+    <!-- Error messages -->
+    <string name="patrol_no_token">No patrol/csrf token available. Log in or you are missing rights.</string>
+    <string name="rollback_no_token">No rollback token — log in or you lack rollback rights</string>
+    <string name="block_no_token">No block token — log in or you lack sysop rights</string>
+    <string name="csrf_no_token">No csrf token — log in</string>
+    <string name="patrol_failed">Patrol failed: %1$s</string>
+    <string name="action_failed">Action failed: %1$s</string>
+    <string name="mark_failed">Marking failed: %1$s</string>
+    <string name="diff_load_error">Could not load diff for %1$s</string>
+
+    <!-- Settings screen -->
+    <string name="settings_wiki_projects">Wiki projects</string>
+    <string name="settings_disclaimer">WikiChanges is not affiliated with the Wikimedia Foundation. This app is made by ItsNyoty.</string>
+    <string name="settings_add_wiki">Add wiki</string>
+    <string name="settings_your_profile">Your profile</string>
+    <string name="settings_not_logged_in">You are not logged in. Some actions (such as patrolling and rollback) require a Wikimedia account.</string>
+    <string name="settings_back">Back to recent changes</string>
+    <string name="settings_add">Add</string>
+    <string name="settings_logout">Log out</string>
+    <string name="add_wiki_title">Add new wiki</string>
+    <string name="settings_wiki_id">Wiki ID (e.g. dewiki)</string>
+    <string name="settings_wiki_name">Name (e.g. Deutsches Wikipedia)</string>
+    <string name="settings_wiki_url">API URL (e.g. https://de.wikipedia.org/w/api.php)</string>
+    <string name="standard_wiki">Default wiki</string>
+
+    <!-- Namespace labels -->
+    <string name="ns_main">Main (0)</string>
+    <string name="ns_talk">Talk (1)</string>
+    <string name="ns_user">User (2)</string>
+    <string name="ns_user_talk">User talk (3)</string>
+    <string name="ns_project">Project (4)</string>
+    <string name="ns_project_talk">Project talk (5)</string>
+    <string name="ns_file">File (6)</string>
+    <string name="ns_file_talk">File talk (7)</string>
+</resources>

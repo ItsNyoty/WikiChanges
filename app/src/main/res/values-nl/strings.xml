@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WikiChanges</string>
+
+    <!-- General actions -->
+    <string name="wiki_selector">Wiki</string>
+    <string name="refresh">Vernieuwen</string>
+    <string name="settings">Instellingen</string>
+    <string name="filters">Filters</string>
+    <string name="load_more">Meer laden</string>
+    <string name="retry">Opnieuw proberen</string>
+    <string name="cancel">Annuleren</string>
+    <string name="execute">Uitvoeren</string>
+    <string name="close">Sluiten</string>
+    <string name="delete">Verwijderen</string>
+
+    <!-- Loading / empty / error -->
+    <string name="loading">Laden…</string>
+    <string name="no_changes_found">Geen recente wijzigingen gevonden</string>
+    <string name="unknown_error">Onbekende fout</string>
+    <string name="error_loading">Fout bij ophalen</string>
+
+    <!-- Filters -->
+    <string name="filter_only_anon">Alleen anoniemen</string>
+    <string name="filter_hide_bots">Verberg bots</string>
+    <string name="filter_only_unpatrolled">Alleen ongecontroleerd</string>
+    <string name="filter_hide_new_pages">Verberg nieuwe pagina's</string>
+    <string name="filter_hide_minor">Verberg kleine bewerkingen</string>
+    <string name="filter_namespace">Naamruimte</string>
+    <string name="filter_sort">Sorteer</string>
+    <string name="filter_sort_newest">Nieuwste eerst</string>
+    <string name="filter_sort_oldest">Oudste eerst</string>
+    <string name="filter_max">Max</string>
+    <string name="filter_auto_refresh">Auto-refresh (sec)</string>
+    <string name="auto_refresh_off_hint">0 = uit</string>
+
+    <!-- Change card -->
+    <string name="unknown_page">Onbekende pagina</string>
+    <string name="unknown_user">onbekend</string>
+    <string name="user_colon">Gebruiker: %1$s</string>
+    <string name="action_good">Goed</string>
+    <string name="action_bad">Slecht</string>
+    <string name="action_warning">Waarschuwing sturen</string>
+    <string name="action_rollback">Terugdraaien</string>
+    <string name="action_block">Gebruiker blokkeren</string>
+    <string name="action_diff">Verschil</string>
+    <string name="choose_action">Actie kiezen</string>
+    <string name="no_right_suffix">(geen recht)</string>
+
+    <!-- Reason dialog -->
+    <string name="reason_placeholder">Reden / opmerking</string>
+    <string name="reason_rollback">Reden voor terugdraaien</string>
+    <string name="reason_warning">Waarschuwingstemplate kiezen</string>
+    <string name="reason_block">Reden voor blokkade</string>
+
+    <!-- Diff -->
+    <string name="diff_title">Verschil</string>
+
+    <!-- Result messages -->
+    <string name="change_patrolled">Wijziging %1$s gemarkeerd als goedgekeurd</string>
+    <string name="change_rollbacked">Wijziging %1$s teruggedraaid</string>
+    <string name="user_warned">Gebruiker %1$s gewaarschuwd</string>
+    <string name="user_blocked">Gebruiker %1$s geblokkeerd</string>
+    <string name="already_patrolled">Wijziging was al gemarkeerd</string>
+
+    <!-- Error messages -->
+    <string name="patrol_no_token">Geen patrol/csrf token beschikbaar. Log in of je mist de rechten.</string>
+    <string name="rollback_no_token">Geen rollback token — log in of je hebt geen rollback-rechten</string>
+    <string name="block_no_token">Geen block token — log in of je hebt geen sysop-rechten</string>
+    <string name="csrf_no_token">Geen csrf token — log in</string>
+    <string name="patrol_failed">Markeren mislukt: %1$s</string>
+    <string name="action_failed">Actie mislukt: %1$s</string>
+    <string name="mark_failed">Markeren mislukt: %1$s</string>
+    <string name="diff_load_error">Kon geen verschil laden voor %1$s</string>
+
+    <!-- Settings screen -->
+    <string name="settings_wiki_projects">Wiki projecten</string>
+    <string name="settings_disclaimer">WikiChanges is niet gelieerd aan de Wikimedia Foundation. Deze app is gemaakt door ItsNyoty.</string>
+    <string name="settings_add_wiki">Wiki toevoegen</string>
+    <string name="settings_your_profile">Jouw profiel</string>
+    <string name="settings_not_logged_in">Je bent niet ingelogd. Sommige acties (zoals patrolleren en rollbacken) vereisen een Wikimedia-account.</string>
+    <string name="settings_back">Terug naar recente wijzigingen</string>
+    <string name="settings_add">Toevoegen</string>
+    <string name="settings_logout">Uitloggen</string>
+    <string name="add_wiki_title">Nieuwe wiki toevoegen</string>
+    <string name="settings_wiki_id">Wiki ID (bijv. dewiki)</string>
+    <string name="settings_wiki_name">Naam (bijv. Deutsches Wikipedia)</string>
+    <string name="settings_wiki_url">API URL (bijv. https://de.wikipedia.org/w/api.php)</string>
+    <string name="standard_wiki">Standaard wiki</string>
+
+    <!-- Namespace labels -->
+    <string name="ns_main">Hoofdnaamruimte (0)</string>
+    <string name="ns_talk">Overleg (1)</string>
+    <string name="ns_user">Gebruiker (2)</string>
+    <string name="ns_user_talk">Gebruikersoverleg (3)</string>
+    <string name="ns_project">Wikipedia/Project (4)</string>
+    <string name="ns_project_talk">Overleg Wikipedia (5)</string>
+    <string name="ns_file">Bestand (6)</string>
+    <string name="ns_file_talk">Bestandsoverleg (7)</string>
+</resources>
