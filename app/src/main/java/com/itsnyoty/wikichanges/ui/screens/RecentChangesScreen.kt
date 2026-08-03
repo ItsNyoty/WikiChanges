@@ -939,7 +939,7 @@ private fun BadActionBottomSheet(
                         
                         if (selectedAction == BadEditAction.BLOCK) {
                             Spacer(Modifier.height(12.dp))
-                            Text("Duur van blokkade", style = MaterialTheme.typography.labelMedium)
+                            Text(stringResource(R.string.block_duration_label), style = MaterialTheme.typography.labelMedium)
                             val periods = listOf(
                                 "31 hours", "1 day", "3 days", "1 week", "2 weeks", 
                                 "1 month", "3 months", "6 months", "1 year", "infinite"
@@ -959,7 +959,7 @@ private fun BadActionBottomSheet(
                         Spacer(Modifier.height(12.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(checked = rollbackToo, onCheckedChange = { rollbackToo = it })
-                            Text("Ook wijzigingen terugdraaien", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.rollback_also_label), style = MaterialTheme.typography.bodyMedium)
                         }
                         
                         Spacer(Modifier.height(24.dp))

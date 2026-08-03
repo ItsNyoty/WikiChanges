@@ -126,4 +126,13 @@
     <!-- New changes -->
     <string name="new_changes_found">%1$d nieuwe wijzigingen gevonden</string>
     <string name="scroll_to_top">Tonen</string>
+
+    <!-- Landing screen -->
+    <string name="landing_subtitle">Controleer en beoordeel recente Wikipedia-bewerkingen</string>
+    <string name="login_with_wikimedia">Inloggen met Wikimedia</string>
+    <string name="skip_to_viewer">Overslaan – alleen bewerkingen bekijken</string>
+    <string name="created_by_disclaimer">Gemaakt door ItsNyoty\nNiet gelieerd aan de Wikimedia Foundation</string>
+    <string name="login_error_prefix">Kon inlogscherm openen: %1$s</string>
+    <string name="block_duration_label">Duur van blokkade</string>
+    <string name="rollback_also_label">Ook wijzigingen terugdraaien</string>
 </resources>

@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -82,7 +83,7 @@ fun LandingScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "WikiChanges",
+                text = stringResource(R.string.app_name),
                 color = Color.White,
                 fontSize = 42.sp,
                 fontWeight = FontWeight.Bold,
@@ -92,7 +93,7 @@ fun LandingScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Controleer en beoordeel recente Wikipedia-bewerkingen",
+                text = stringResource(R.string.landing_subtitle),
                 color = Color.White.copy(alpha = 0.9f),
                 fontSize = 16.sp,
                 textAlign = TextAlign.Center
@@ -112,7 +113,7 @@ fun LandingScreen(
                                 .build()
                             intent.launchUrl(context, url.toUri())
                         } catch (e: Exception) {
-                            errorMessage = "Kon inlogscherm openen: ${e.localizedMessage}"
+                            errorMessage = context.getString(R.string.login_error_prefix, e.localizedMessage)
                         } finally {
                             isLoading = false
                         }
@@ -136,7 +137,7 @@ fun LandingScreen(
                     )
                 } else {
                     Text(
-                        "Inloggen met Wikimedia",
+                        stringResource(R.string.login_with_wikimedia),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -149,13 +150,13 @@ fun LandingScreen(
                 onClick = onSkip,
                 colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
             ) {
-                Text("Overslaan – alleen bewerkingen bekijken", fontSize = 15.sp)
+                Text(stringResource(R.string.skip_to_viewer), fontSize = 15.sp)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Gemaakt door ItsNyoty\nNiet gelieerd aan de Wikimedia Foundation",
+                text = stringResource(R.string.created_by_disclaimer),
                 color = Color.White.copy(alpha = 0.7f),
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center

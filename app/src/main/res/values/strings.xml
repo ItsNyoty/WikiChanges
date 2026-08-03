@@ -126,4 +126,13 @@
     <!-- New changes -->
     <string name="new_changes_found">%1$d new changes found</string>
     <string name="scroll_to_top">Show</string>
+
+    <!-- Landing screen -->
+    <string name="landing_subtitle">Review and patrol recent Wikipedia edits</string>
+    <string name="login_with_wikimedia">Login with Wikimedia</string>
+    <string name="skip_to_viewer">Skip – view changes only</string>
+    <string name="created_by_disclaimer">Created by ItsNyoty\nNot affiliated with the Wikimedia Foundation</string>
+    <string name="login_error_prefix">Could not open login screen: %1$s</string>
+    <string name="block_duration_label">Block duration</string>
+    <string name="rollback_also_label">Also rollback changes</string>
 </resources>
