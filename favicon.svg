@@ -1,6 +1,40 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
   <rect width="32" height="32" rx="6" fill="#00695C"/>
-  <path d="M10 8H22V24H10V8Z" fill="white" fill-opacity="0.2"/>
-  <path d="M10 8H22V24H10V8Z" stroke="white" stroke-width="2"/>
-  <path d="M14 16L18 12L22 16M18 12V20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Minimal Globe Outline -->
+  <path d="M24,15 A8,8 0 1,0 8,15 A8,8 0 1,0 24,15" stroke="white" stroke-opacity="0.6" stroke-width="1" fill="none" />
+        
+  <!-- Globe Equator -->
+  <path d="M24,15 A8,3 0 1,0 8,15 A8,3 0 1,0 24,15" stroke="white" stroke-opacity="0.6" stroke-width="1" fill="none" />
+        
+  <!-- Globe Prime Meridian -->
+  <path d="M16,23 A3,8 0 1,0 16,7 A3,8 0 1,0 16,23" stroke="white" stroke-opacity="0.6" stroke-width="1" fill="none" />
+
+  <!-- Swipe Trails -->
+  <path d="M 12,27 Q 19,30 28,26" stroke="#64B5F6" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" fill="none" />
+  <path d="M 14,29 Q 20,31 26,28" stroke="#90CAF9" stroke-opacity="1" stroke-width="1" stroke-linecap="round" fill="none" />
+
+  <!-- Sparkles -->
+  <path d="M 23,17 Q 25,17 25,15 Q 25,17 27,17 Q 25,17 25,19 Q 25,17 23,17 Z" fill="#64B5F6"/>
+  <path d="M 26.5,14 Q 28,14 28,12.5 Q 28,14 29.5,14 Q 28,14 28,15.5 Q 28,14 26.5,14 Z" fill="#64B5F6"/>
+
+  <!-- Stick -->
+  <path d="M 6.5,6.5 L 14,15.5" stroke="#616161" stroke-width="2" stroke-linecap="round" fill="none" />
+  
+  <!-- Blue Grip -->
+  <path d="M 4,4 L 7.5,8.2" stroke="#1565C0" stroke-width="3" stroke-linecap="round" fill="none" />
+  <!-- Hole in grip -->
+  <circle cx="4.8" cy="4.8" r="0.6" fill="#EEEEEE"/>
+  
+  <!-- Blue Collar -->
+  <path d="M 12,13 L 15,16.5" stroke="#1565C0" stroke-width="3.5" stroke-linecap="round" fill="none" />
+
+  <!-- Mop Head -->
+  <path d="M 14,16 Q 12,23 18,26 Q 24,27 28,23 Q 23,20 16,18 Z" fill="#F5F5F5" stroke="#757575" stroke-width="1" stroke-linejoin="round"/>
+  
+  <!-- Mop Strings (details) -->
+  <path d="M 14.5,18 Q 15,22 19,24.5" stroke="#BDBDBD" stroke-width="1" fill="none" stroke-linecap="round"/>
+  <path d="M 15.5,17 Q 19,21 24,23.5" stroke="#BDBDBD" stroke-width="1" fill="none" stroke-linecap="round"/>
+  <path d="M 16,16.5 Q 21,19 26,22" stroke="#BDBDBD" stroke-width="1" fill="none" stroke-linecap="round"/>
 </svg>

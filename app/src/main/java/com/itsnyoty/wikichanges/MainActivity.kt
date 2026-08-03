@@ -3,6 +3,7 @@ package com.itsnyoty.wikichanges
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.view.animation.AnticipateInterpolator
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.itsnyoty.wikichanges.data.auth.OAuthManager
 import com.itsnyoty.wikichanges.data.model.UiState
@@ -17,9 +19,31 @@ import com.itsnyoty.wikichanges.ui.screens.WikiChangesApp
 import com.itsnyoty.wikichanges.ui.theme.WikiChangesTheme
 import kotlinx.coroutines.launch
 
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        // Add exit animation
+        splashScreen.setOnExitAnimationListener { splashScreenView ->
+            val iconView = splashScreenView.iconView
+            val view = splashScreenView.view
+
+            iconView.animate()
+                .scaleX(0f)
+                .scaleY(0f)
+                .setDuration(500L)
+                .setInterpolator(AnticipateInterpolator())
+                .start()
+
+            view.animate()
+                .alpha(0f)
+                .setDuration(500L)
+                .setInterpolator(AnticipateInterpolator())
+                .withEndAction { splashScreenView.remove() }
+                .start()
+        }
 
         handleOAuthRedirect(intent?.data)
 

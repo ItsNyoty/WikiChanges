@@ -35,8 +35,14 @@ class RecentChangesViewModel(application: Application) : AndroidViewModel(applic
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    private val _newItemsCount = MutableStateFlow(0)
+    val newItemsCount: StateFlow<Int> = _newItemsCount.asStateFlow()
+
     private val _diffState = MutableStateFlow<UiState<String>?>(null)
     val diffState: StateFlow<UiState<String>?> = _diffState.asStateFlow()
+
+    private val _activeDiffChange = MutableStateFlow<RecentChange?>(null)
+    val activeDiffChange: StateFlow<RecentChange?> = _activeDiffChange.asStateFlow()
 
     private var currentOffset: String? = null
     private var isLoadingMore = false
@@ -44,10 +50,7 @@ class RecentChangesViewModel(application: Application) : AndroidViewModel(applic
 
     init {
         viewModelScope.launch {
-            // Zorg dat een opgeslagen access token uit DataStore in het geheugen staat
-            // zodat alle API-aanroepen (vooral user rights) geautoriseerd zijn.
             OAuthManager.getInstance(getApplication()).loadTokenIntoMemory()
-
             _wikis.value = repository.getAllWikis()
             val wiki = repository.getSelectedWikiOrDefault()
             _selectedWiki.value = wiki
@@ -86,55 +89,76 @@ class RecentChangesViewModel(application: Application) : AndroidViewModel(applic
 
     fun loadRecentChanges(loadMore: Boolean = false, isRefresh: Boolean = false) {
         if (isLoadingMore || selectedWiki.value == null) return
+        
+        isLoadingMore = true
+        _isRefreshing.value = isRefresh
 
         viewModelScope.launch {
-            isLoadingMore = true
-            _isRefreshing.value = isRefresh
-
-            // Bij een refresh wil je de bestaande lijst NIET vervangen door een spinner
-            // maar wel een keer een spinner tonen bij eerste laad.
             if (!loadMore && !isRefresh && currentChanges.isEmpty()) {
                 _uiState.value = UiState.Loading
             }
 
             try {
                 val wiki = selectedWiki.value ?: repository.getSelectedWikiOrDefault()
-                val rights = repository.getCurrentUserRights(wiki)
-                _userRights.value = rights
+                
+                // Fetch rights only if we don't have them yet or if it's a manual refresh
+                if (_userRights.value.isEmpty() || !isRefresh) {
+                    val rights = repository.getCurrentUserRights(wiki)
+                    _userRights.value = rights
+                }
 
                 val changes = repository.getRecentChanges(
                     wiki = wiki,
                     filters = _filters.value,
-                    canReadPatrolMarks = rights.contains("patrol"),
+                    canReadPatrolMarks = _userRights.value.contains("patrol"),
                     start = if (loadMore) currentOffset else null
                 )
 
                 val filteredChanges = changes.filter { !it.title.isNullOrBlank() && !it.user.isNullOrBlank() }
 
                 currentChanges = when {
-                    loadMore -> currentChanges + filteredChanges
-                    isRefresh -> {
+                    loadMore -> {
+                        // Append to bottom
                         val existingIds = currentChanges.map { it.id }.toSet()
-                        val newChanges = filteredChanges.filter { it.id !in existingIds }
-                        if (newChanges.isNotEmpty()) newChanges + currentChanges else currentChanges
+                        currentChanges + filteredChanges.filter { it.id !in existingIds }
+                    }
+                    isRefresh -> {
+                        // Merge with top, update existing items
+                        val newItemsMap = filteredChanges.associateBy { it.id }
+                        val trulyNew = filteredChanges.filter { new -> currentChanges.none { it.id == new.id } }
+                        
+                        if (trulyNew.isNotEmpty()) {
+                            _newItemsCount.value = trulyNew.size
+                        }
+
+                        // Update existing items if they are in the latest fetch, otherwise keep them
+                        val updatedCurrent = currentChanges.map { existing ->
+                            newItemsMap[existing.id] ?: existing
+                        }
+                        
+                        trulyNew + updatedCurrent
                     }
                     else -> filteredChanges
                 }
 
-                if (loadMore || !isRefresh) {
-                    currentOffset = filteredChanges.lastOrNull()?.timestamp
+                // Update offset for pagination (always tracks the end of the loaded list)
+                if (loadMore || !isRefresh || currentOffset == null) {
+                    currentOffset = currentChanges.lastOrNull()?.timestamp
                 }
 
                 _uiState.value = if (currentChanges.isEmpty()) {
                     UiState.Empty
                 } else {
-                    UiState.Success(currentChanges)
+                    // Force a new list instance to ensure StateFlow observers are notified
+                    UiState.Success(currentChanges.toList())
                 }
             } catch (e: Exception) {
-                _uiState.value = UiState.Error(
-                    message = e.localizedMessage ?: getApplication<Application>().getString(R.string.unknown_error),
-                    errorCode = e.javaClass.simpleName
-                )
+                if (currentChanges.isEmpty()) {
+                    _uiState.value = UiState.Error(
+                        message = e.localizedMessage ?: getApplication<Application>().getString(R.string.unknown_error),
+                        errorCode = e.javaClass.simpleName
+                    )
+                }
             } finally {
                 isLoadingMore = false
                 _isRefreshing.value = false
@@ -149,6 +173,7 @@ class RecentChangesViewModel(application: Application) : AndroidViewModel(applic
 
     fun loadDiff(change: RecentChange) {
         viewModelScope.launch {
+            _activeDiffChange.value = change
             _diffState.value = UiState.Loading
             try {
                 val wiki = selectedWiki.value ?: repository.getSelectedWikiOrDefault()
@@ -172,10 +197,38 @@ class RecentChangesViewModel(application: Application) : AndroidViewModel(applic
 
     fun clearDiffState() {
         _diffState.value = null
+        _activeDiffChange.value = null
     }
 
-    fun markAsGood(change: RecentChange) {
+    fun navigateToNext() {
+        val current = _activeDiffChange.value ?: return
+        val list = currentChanges
+        val index = list.indexOfFirst { it.id == current.id }
+        if (index >= 0 && index < list.size - 1) {
+            loadDiff(list[index + 1])
+        } else if (index == list.size - 1) {
+            // Load more if we are at the end
+            loadRecentChanges(loadMore = true)
+        }
+    }
+
+    fun navigateToPrevious() {
+        val current = _activeDiffChange.value ?: return
+        val list = currentChanges
+        val index = list.indexOfFirst { it.id == current.id }
+        if (index > 0) {
+            loadDiff(list[index - 1])
+        }
+    }
+
+    fun markAsGood(change: RecentChange, autoNext: Boolean = false) {
         viewModelScope.launch {
+            if (com.itsnyoty.wikichanges.data.model.DebugSettings.isDryModeEnabled.value) {
+                _actionState.value = UiState.Success("Dry mode: Mark as good simulated for ${change.title}")
+                if (autoNext) navigateToNext() else refresh()
+                return@launch
+            }
+
             _actionState.value = UiState.Loading
             try {
                 val wiki = selectedWiki.value ?: repository.getSelectedWikiOrDefault()
@@ -188,7 +241,12 @@ class RecentChangesViewModel(application: Application) : AndroidViewModel(applic
                     _actionState.value = UiState.Success(
                         getApplication<Application>().getString(R.string.change_patrolled, change.title ?: "")
                     )
-                    refresh()
+                    
+                    if (autoNext) {
+                        navigateToNext()
+                    } else {
+                        refresh()
+                    }
                 } else {
                     _actionState.value = UiState.Error(
                         if (change.isPatrolled()) {
@@ -206,71 +264,75 @@ class RecentChangesViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    fun markAsBad(change: RecentChange, action: BadEditAction, reason: String = "") {
+    fun performBadAction(
+        change: RecentChange,
+        action: BadEditAction,
+        reason: String,
+        rollbackToo: Boolean = false,
+        expiry: String = "1 week"
+    ) {
         viewModelScope.launch {
+            if (com.itsnyoty.wikichanges.data.model.DebugSettings.isDryModeEnabled.value) {
+                _actionState.value = UiState.Success("Dry mode: $action simulated for ${change.title}")
+                refresh()
+                return@launch
+            }
+
             _actionState.value = UiState.Loading
             try {
                 val wiki = selectedWiki.value ?: repository.getSelectedWikiOrDefault()
                 val tokens = repository.getTokens(wiki)
-
                 val app = getApplication<Application>()
-                val token = when (action) {
-                    BadEditAction.ROLLBACK -> tokens["rollbacktoken"]?.takeIf { it.isNotBlank() }
+
+                if (rollbackToo || action == BadEditAction.ROLLBACK) {
+                    val rbToken = tokens["rollbacktoken"]?.takeIf { it.isNotBlank() }
                         ?: throw Exception(app.getString(R.string.rollback_no_token))
-                    BadEditAction.BLOCK -> tokens["blocktoken"]?.takeIf { it.isNotBlank() }
-                        ?: throw Exception(app.getString(R.string.block_no_token))
-                    BadEditAction.WARNING -> tokens["csrftoken"]?.takeIf { it.isNotBlank() }
-                        ?: throw Exception(app.getString(R.string.csrf_no_token))
+                    repository.performRollback(
+                        wiki = wiki,
+                        title = change.title ?: "",
+                        user = change.user ?: "",
+                        changeId = change.id,
+                        token = rbToken,
+                        summary = "Reverted with WikiChanges: ${reason}"
+                    )
                 }
 
+                val csrfToken = tokens["csrftoken"]?.takeIf { it.isNotBlank() }
+                
                 when (action) {
-                    BadEditAction.ROLLBACK -> {
-                        repository.performRollback(
-                            wiki = wiki,
-                            title = change.title ?: "",
-                            user = change.user ?: "",
-                            changeId = change.id,
-                            token = token,
-                            summary = "Reverted with WikiChanges: ${reason}"
-                        )
-                        _actionState.value = UiState.Success(
-                            app.getString(R.string.change_rollbacked, change.title ?: "")
-                        )
-                    }
                     BadEditAction.WARNING -> {
-                        val template = when (wiki.id) {
-                            "nlwiki" -> "Waarschuwing"
-                            "enwiki" -> "uw-vandalism"
-                            else -> "Warning"
-                        }
+                        val token = csrfToken ?: throw Exception(app.getString(R.string.csrf_no_token))
                         repository.warnUser(
                             wiki = wiki,
                             user = change.user ?: "",
-                            warningTemplate = template,
+                            warningTemplate = wiki.warningTemplate ?: "Warning",
                             reason = reason.ifBlank { change.title ?: "" },
                             token = token
                         )
-                        _actionState.value = UiState.Success(
-                            app.getString(R.string.user_warned, change.user ?: "")
-                        )
+                        _actionState.value = UiState.Success(app.getString(R.string.user_warned, change.user ?: ""))
                     }
                     BadEditAction.BLOCK -> {
+                        val token = csrfToken ?: throw Exception(app.getString(R.string.csrf_no_token))
                         repository.blockUser(
                             wiki = wiki,
                             user = change.user ?: "",
-                            expiry = "1 week",
+                            expiry = expiry,
                             reason = "Vandalism: $reason (WikiChanges)",
                             token = token
                         )
-                        _actionState.value = UiState.Success(
-                            app.getString(R.string.user_blocked, change.user ?: "")
-                        )
+                        _actionState.value = UiState.Success(app.getString(R.string.user_blocked, change.user ?: ""))
+                    }
+                    BadEditAction.ROLLBACK -> {
+                        if (!rollbackToo) { // If already done above, skip
+                            _actionState.value = UiState.Success(app.getString(R.string.change_rollbacked, change.title ?: ""))
+                        }
                     }
                 }
                 refresh()
             } catch (e: Exception) {
+                val app = getApplication<Application>()
                 _actionState.value = UiState.Error(
-                    getApplication<Application>().getString(R.string.action_failed, e.localizedMessage ?: "")
+                    app.getString(R.string.action_failed, e.localizedMessage ?: "")
                 )
             }
         }
@@ -278,6 +340,10 @@ class RecentChangesViewModel(application: Application) : AndroidViewModel(applic
 
     fun clearActionState() {
         _actionState.value = null
+    }
+
+    fun clearNewItemsCount() {
+        _newItemsCount.value = 0
     }
 }
 

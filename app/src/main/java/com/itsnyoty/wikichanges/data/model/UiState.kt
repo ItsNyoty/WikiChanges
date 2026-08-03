@@ -16,23 +16,31 @@ fun RecentChange.getByteDifference(): Int? {
 }
 
 fun RecentChange.formatTimestamp(): String {
-    val cleanTimestamp = timestamp.replace("Z", "")
-    val formats = listOf(
-        "yyyy-MM-dd'T'HH:mm:ss.SSS",
-        "yyyy-MM-dd'T'HH:mm:ss"
-    )
+    if (timestamp.isBlank()) return ""
+    
     val outputFormat = SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault())
+    
+    // We proberen de UTC timestamp te parsen en te converteren naar de lokale tijdzone
+    val inputFormats = listOf(
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss",
+        "yyyy-MM-dd'T'HH:mm:ss.SSS"
+    )
 
-    for (fmt in formats) {
+    for (format in inputFormats) {
         try {
-            val inputFormat = SimpleDateFormat(fmt, Locale.US)
-            inputFormat.parse(cleanTimestamp)?.let { date ->
+            val sdf = SimpleDateFormat(format, Locale.US).apply {
+                timeZone = java.util.TimeZone.getTimeZone("UTC")
+            }
+            sdf.parse(timestamp)?.let { date ->
                 return outputFormat.format(date)
             }
         } catch (e: Exception) {
-            // probeer volgend formaat
+            continue
         }
     }
+    
     return timestamp
 }
 

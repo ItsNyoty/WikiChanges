@@ -1,5 +1,6 @@
 package com.itsnyoty.wikichanges.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -7,6 +8,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.ui.res.stringResource
+import com.itsnyoty.wikichanges.R
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,10 +42,10 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Instellingen") },
+                title = { Text(stringResource(R.string.settings)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Terug")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -56,13 +59,12 @@ fun SettingsScreen(
         ) {
             item {
                 Text(
-                    "Wiki projecten",
+                    stringResource(R.string.settings_wiki_projects),
                     style = MaterialTheme.typography.titleLarge
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "WikiChanges is niet gelieerd aan de Wikimedia Foundation. " +
-                    "Deze app is gemaakt door ItsNyoty.",
+                    stringResource(R.string.settings_disclaimer),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -73,8 +75,10 @@ fun SettingsScreen(
                 WikiItem(
                     wiki = wiki,
                     isSelected = wiki.id == uiState.selectedWikiId,
+                    roles = uiState.wikiRoles[wiki.id] ?: emptyList(),
                     canDelete = !wiki.isDefault,
-                    onDelete = { viewModel.removeWiki(wiki.id) }
+                    onDelete = { viewModel.removeWiki(wiki.id) },
+                    onUpdateTemplate = { viewModel.updateWikiWarningTemplate(wiki.id, it) }
                 )
             }
 
@@ -84,7 +88,7 @@ fun SettingsScreen(
                     onClick = { showAddWikiDialog = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Wiki toevoegen")
+                    Text(stringResource(R.string.settings_add_wiki))
                 }
                 Spacer(Modifier.height(16.dp))
                 Divider()
@@ -95,7 +99,7 @@ fun SettingsScreen(
                 val accessToken by oAuthManager.accessToken.collectAsState(initial = null)
                 val isLoggedIn = !accessToken.isNullOrBlank()
 
-                Text("Jouw profiel", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.settings_your_profile), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
 
                 if (isLoggedIn) {
@@ -130,7 +134,7 @@ fun SettingsScreen(
                                     }
                                     if (user.groups.isNotEmpty()) {
                                         Text(
-                                            "Groepen: ${user.groups.take(5).joinToString()}",
+                                            stringResource(R.string.groups_colon, user.groups.take(5).joinToString()),
                                             style = MaterialTheme.typography.bodySmall
                                         )
                                     }
@@ -139,7 +143,7 @@ fun SettingsScreen(
                                     state.message,
                                     color = MaterialTheme.colorScheme.error
                                 )
-                                else -> Text("Ingelogd bij Wikimedia")
+                                else -> Text(stringResource(R.string.profile_logged_in))
                             }
                         }
                     }
@@ -155,11 +159,11 @@ fun SettingsScreen(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Uitloggen")
+                        Text(stringResource(R.string.settings_logout))
                     }
                 } else {
                     Text(
-                        "Je bent niet ingelogd. Sommige acties (zoals patrolleren en rollbacken) vereisen een Wikimedia-account.",
+                        stringResource(R.string.settings_not_logged_in),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(Modifier.height(8.dp))
@@ -167,7 +171,7 @@ fun SettingsScreen(
                         onClick = onBack,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Terug naar recente wijzigingen")
+                        Text(stringResource(R.string.settings_back))
                     }
                 }
             }
@@ -177,27 +181,27 @@ fun SettingsScreen(
     if (showAddWikiDialog) {
         AlertDialog(
             onDismissRequest = { showAddWikiDialog = false },
-            title = { Text("Nieuwe wiki toevoegen") },
+            title = { Text(stringResource(R.string.add_wiki_title)) },
             text = {
                 Column {
                     OutlinedTextField(
                         value = newWikiId,
                         onValueChange = { newWikiId = it.lowercase() },
-                        label = { Text("Wiki ID (bijv. dewiki)") },
+                        label = { Text(stringResource(R.string.settings_wiki_id)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newWikiName,
                         onValueChange = { newWikiName = it },
-                        label = { Text("Naam (bijv. Deutsches Wikipedia)") },
+                        label = { Text(stringResource(R.string.settings_wiki_name)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newWikiUrl,
                         onValueChange = { newWikiUrl = it },
-                        label = { Text("API URL (bijv. https://de.wikipedia.org/w/api.php)") },
+                        label = { Text(stringResource(R.string.settings_wiki_url)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -222,10 +226,10 @@ fun SettingsScreen(
                             showAddWikiDialog = false
                         }
                     }
-                ) { Text("Toevoegen") }
+                ) { Text(stringResource(R.string.settings_add)) }
             },
             dismissButton = {
-                TextButton(onClick = { showAddWikiDialog = false }) { Text("Annuleren") }
+                TextButton(onClick = { showAddWikiDialog = false }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }
@@ -235,13 +239,19 @@ fun SettingsScreen(
 private fun WikiItem(
     wiki: WikiProject,
     isSelected: Boolean,
+    roles: List<String>,
     canDelete: Boolean,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onUpdateTemplate: (String) -> Unit
 ) {
+    var showEditDialog by remember { mutableStateOf(false) }
+    var tempTemplate by remember { mutableStateOf(wiki.warningTemplate ?: "") }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .clickable { showEditDialog = true },
         elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp)
     ) {
         Row(
@@ -258,9 +268,26 @@ private fun WikiItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                
+                if (roles.isNotEmpty()) {
+                    Text(
+                        "Rollen: ${roles.joinToString()}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+
+                if (wiki.warningTemplate != null) {
+                    Text(
+                        "Template: ${wiki.warningTemplate}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
                 if (wiki.isDefault) {
                     Text(
-                        "Standaard wiki",
+                        stringResource(R.string.standard_wiki),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -268,9 +295,38 @@ private fun WikiItem(
             }
             if (canDelete) {
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Verwijderen")
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
                 }
             }
         }
+    }
+
+    if (showEditDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = { Text("Wiki instellingen") },
+            text = {
+                Column {
+                    Text("Waarschuwingstemplate", style = MaterialTheme.typography.labelMedium)
+                    OutlinedTextField(
+                        value = tempTemplate,
+                        onValueChange = { tempTemplate = it },
+                        label = { Text("Template naam") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text("Bijv: 'Waarschuwing' of 'uw-vandalism'", style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onUpdateTemplate(tempTemplate)
+                    showEditDialog = false
+                }) { Text("Opslaan") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) { Text("Annuleren") }
+            }
+        )
     }
 }

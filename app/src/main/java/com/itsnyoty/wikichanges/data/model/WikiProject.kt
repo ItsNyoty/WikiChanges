@@ -6,7 +6,8 @@ data class WikiProject(
     val code: String,
     val baseUrl: String,
     val apiUrl: String,
-    val isDefault: Boolean = false
+    val isDefault: Boolean = false,
+    val warningTemplate: String? = null
 )
 
 val DefaultWikiProjects = listOf(
@@ -16,7 +17,8 @@ val DefaultWikiProjects = listOf(
         code = "nl",
         baseUrl = "https://nl.wikipedia.org",
         apiUrl = "https://nl.wikipedia.org/w/api.php",
-        isDefault = true
+        isDefault = true,
+        warningTemplate = "Waarschuwing"
     ),
     WikiProject(
         id = "enwiki",
@@ -24,6 +26,7 @@ val DefaultWikiProjects = listOf(
         code = "en",
         baseUrl = "https://en.wikipedia.org",
         apiUrl = "https://en.wikipedia.org/w/api.php",
-        isDefault = true
+        isDefault = true,
+        warningTemplate = "uw-vandalism"
     )
 )

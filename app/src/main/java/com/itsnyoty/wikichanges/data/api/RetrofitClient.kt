@@ -1,9 +1,12 @@
 package com.itsnyoty.wikichanges.data.api
 
+import com.google.gson.GsonBuilder
 import okhttp3.CookieJar
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.net.CookieManager
 import java.net.CookiePolicy
 import java.util.concurrent.TimeUnit
@@ -11,6 +14,10 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
     private const val CONNECT_TIMEOUT = 30L
     private const val READ_TIMEOUT = 30L
+
+    private val gson = GsonBuilder()
+        .setLenient()
+        .create()
 
     private val cookieManager = CookieManager().apply {
         setCookiePolicy(CookiePolicy.ACCEPT_ALL)
@@ -31,10 +38,10 @@ object RetrofitClient {
         .build()
 
     fun createService(): WikipediaApiService {
-        return retrofit2.Retrofit.Builder()
+        return Retrofit.Builder()
             .baseUrl("https://nl.wikipedia.org/")
             .client(okHttpClient)
-            .addConverterFactory(retrofit2.converter.gson.GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
             .create(WikipediaApiService::class.java)
     }

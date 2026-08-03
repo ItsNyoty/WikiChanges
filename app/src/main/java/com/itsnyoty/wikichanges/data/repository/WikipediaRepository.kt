@@ -53,6 +53,19 @@ class WikipediaRepository private constructor(private val context: Context) {
             preferences[PreferencesKeys.USERNAME]
         }
 
+    fun getAllWikisFlow(): Flow<List<WikiProject>> = context.dataStore.data.map { 
+        val savedJson = it[PreferencesKeys.WIKI_LIST]
+        if (savedJson.isNullOrBlank()) {
+            DefaultWikiProjects
+        } else {
+            try {
+                gson.fromJson(savedJson, Array<WikiProject>::class.java).toList()
+            } catch (e: Exception) {
+                DefaultWikiProjects
+            }
+        }
+    }
+
     private val filtersJson: Flow<String?> = context.dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.FILTERS]
@@ -119,9 +132,9 @@ class WikipediaRepository private constructor(private val context: Context) {
         saveWikiList(current)
     }
 
-    private suspend fun saveWikiList(wikis: List<WikiProject>) {
+    suspend fun saveWikiList(wikis: List<WikiProject>) {
         context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.WIKI_LIST] = com.google.gson.Gson().toJson(wikis)
+            preferences[PreferencesKeys.WIKI_LIST] = gson.toJson(wikis)
         }
     }
 
@@ -171,11 +184,12 @@ class WikipediaRepository private constructor(private val context: Context) {
             url = wiki.apiUrl,
             rcprop = rcprop,
             rclimit = filters.limit,
-            rcnamespace = filters.namespace,
+            rcnamespace = filters.namespace.ifBlank { null },
             rcshow = rcshow.ifBlank { null },
             rctype = rctype,
             rcdir = rcdir,
-            rcstart = start
+            rcstart = start,
+            curtimestamp = if (start == null) "1" else "0"
         )
 
         return response.query.recentChanges
@@ -225,7 +239,7 @@ class WikipediaRepository private constructor(private val context: Context) {
         token: String,
         summary: String? = null
     ) {
-        apiService.rollback(
+        val response = apiService.rollback(
             url = wiki.apiUrl,
             title = title,
             user = user,
@@ -233,6 +247,9 @@ class WikipediaRepository private constructor(private val context: Context) {
             token = token,
             summary = summary
         )
+        if (response.error != null) {
+            throw Exception(response.error.info ?: response.error.code ?: "Unknown rollback error")
+        }
     }
 
     suspend fun warnUser(
@@ -242,15 +259,8 @@ class WikipediaRepository private constructor(private val context: Context) {
         reason: String,
         token: String
     ) {
-        val userTalkPage = when (wiki.id) {
-            "nlwiki" -> "Gebruikersoverleg:${user.replace(" ", "_")}"
-            else -> "User_talk:${user.replace(" ", "_")}"
-        }
-        val template = when (wiki.id) {
-            "nlwiki" -> "Waarschuwing"
-            "enwiki" -> "uw-vandalism"
-            else -> warningTemplate
-        }
+        val userTalkPage = "User_talk:${(user ?: "").replace(" ", "_")}"
+        val template = wiki.warningTemplate ?: warningTemplate
         val text = "{{subst:${template}|${titleToSubject(wiki, reason)}}} ~~~~"
 
         apiService.warnUser(
@@ -289,7 +299,7 @@ class WikipediaRepository private constructor(private val context: Context) {
         noCreateAccount: Boolean = true,
         autoBlock: Boolean = true
     ) {
-        apiService.blockUser(
+        val response = apiService.blockUser(
             url = wiki.apiUrl,
             user = user,
             expiry = expiry,
@@ -299,6 +309,9 @@ class WikipediaRepository private constructor(private val context: Context) {
             createAccount = noCreateAccount,
             enableAutoBlock = autoBlock
         )
+        if (response.error != null) {
+            throw Exception(response.error.info ?: response.error.code ?: "Unknown block error")
+        }
     }
 
     suspend fun login(wiki: WikiProject, username: String, password: String): UiState<String> {
@@ -329,7 +342,7 @@ class WikipediaRepository private constructor(private val context: Context) {
         RetrofitClient.clearCookies()
     }
 
-    private fun titleToSubject(wiki: WikiProject, title: String): String {
-        return title.replace(" ", "_").take(100)
+    private fun titleToSubject(wiki: WikiProject, title: String?): String {
+        return (title ?: "").replace(" ", "_").take(100)
     }
 }

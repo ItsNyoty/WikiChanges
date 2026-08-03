@@ -14,7 +14,8 @@ import kotlinx.coroutines.launch
 data class WikiSettingsUiState(
     val wikis: List<WikiProject> = emptyList(),
     val selectedWikiId: String = "",
-    val username: String = ""
+    val username: String = "",
+    val wikiRoles: Map<String, List<String>> = emptyMap()
 )
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
@@ -34,11 +35,27 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         val wikis = repository.getAllWikis()
         val selectedId = repository.selectedWiki.first()
         val user = repository.username.first()
+        
         _uiState.value = WikiSettingsUiState(
             wikis = wikis,
             selectedWikiId = selectedId ?: wikis.firstOrNull { it.isDefault }?.id ?: "enwiki",
             username = user ?: ""
         )
+        
+        fetchRolesForAllWikis(wikis)
+    }
+
+    private fun fetchRolesForAllWikis(wikis: List<WikiProject>) {
+        viewModelScope.launch {
+            val rolesMap = mutableMapOf<String, List<String>>()
+            wikis.forEach { wiki ->
+                val roles = repository.getCurrentUserGroups(wiki)
+                if (roles.isNotEmpty()) {
+                    rolesMap[wiki.id] = roles
+                }
+            }
+            _uiState.value = _uiState.value.copy(wikiRoles = rolesMap)
+        }
     }
 
     fun setUsername(username: String) {
@@ -62,9 +79,17 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun logout(
-        onResult: (UiState<String>) -> Unit = {}
-    ) {
+    fun updateWikiWarningTemplate(wikiId: String, template: String) {
+        viewModelScope.launch {
+            val wikis = repository.getAllWikis().map {
+                if (it.id == wikiId) it.copy(warningTemplate = template) else it
+            }
+            repository.saveWikiList(wikis)
+            loadSettings()
+        }
+    }
+
+    fun logout(onResult: (UiState<String>) -> Unit = {}) {
         viewModelScope.launch {
             try {
                 com.itsnyoty.wikichanges.data.auth.OAuthManager.getInstance(getApplication()).clear()

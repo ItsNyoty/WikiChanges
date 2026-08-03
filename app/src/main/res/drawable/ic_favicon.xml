@@ -1,22 +1,104 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="32dp"
-    android:height="32dp"
-    android:viewportWidth="32"
-    android:viewportHeight="32">
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Background -->
     <path
         android:fillColor="#00695C"
-        android:pathData="M0,6a6,6 0,0 1,6,-6h20a6,6 0,0 1,6,6v20a6,6 0,0 1,-6,6h-20a6,6 0,0 1,-6,-6z" />
-    <path
-        android:fillColor="#33FFFFFF"
-        android:pathData="M10,8h12v16h-12z" />
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2"
-        android:pathData="M10,8h12v16h-12z" />
+        android:pathData="M0,20.25A20.25,20.25 0,0 1,20.25 0H87.75A20.25,20.25 0,0 1,108 20.25V87.75A20.25,20.25 0,0 1,87.75 108H20.25A20.25,20.25 0,0 1,0 87.75Z" />
+
+    <!-- Minimal Globe Outline -->
     <path
         android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.375"
+        android:strokeAlpha="0.6"
+        android:pathData="M81,50.625A27,27 0,1 0,27 50.625A27,27 0,1 0,81 50.625" />
+
+    <!-- Globe Equator -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.375"
+        android:strokeAlpha="0.6"
+        android:pathData="M81,50.625A27,10.125 0,1 0,27 50.625A27,10.125 0,1 0,81 50.625" />
+
+    <!-- Globe Prime Meridian -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.375"
+        android:strokeAlpha="0.6"
+        android:pathData="M54,77.625A10.125,27 0,1 0,54 23.625A10.125,27 0,1 0,54 77.625" />
+
+    <!-- Swipe Trails -->
+    <path
+        android:strokeColor="#64B5F6"
+        android:strokeWidth="5.0625"
         android:strokeLineCap="round"
+        android:pathData="M40.5,91.125Q64.125,101.25 94.5,87.75" />
+    <path
+        android:strokeColor="#90CAF9"
+        android:strokeWidth="3.375"
+        android:strokeLineCap="round"
+        android:pathData="M47.25,97.875Q67.5,104.625 87.75,94.5" />
+
+    <!-- Sparkles -->
+    <path
+        android:fillColor="#64B5F6"
+        android:pathData="M77.625,57.375Q84.375,57.375 84.375,50.625Q84.375,57.375 91.125,57.375Q84.375,57.375 84.375,64.125Q84.375,57.375 77.625,57.375Z" />
+    <path
+        android:fillColor="#64B5F6"
+        android:pathData="M89.4375,47.25Q94.5,47.25 94.5,42.1875Q94.5,47.25 99.5625,47.25Q94.5,47.25 94.5,52.3125Q94.5,47.25 89.4375,47.25Z" />
+
+    <!-- Stick -->
+    <path
+        android:strokeColor="#616161"
+        android:strokeWidth="6.75"
+        android:strokeLineCap="round"
+        android:pathData="M21.9375,21.9375L47.25,52.3125" />
+
+    <!-- Blue Grip -->
+    <path
+        android:strokeColor="#1565C0"
+        android:strokeWidth="10.125"
+        android:strokeLineCap="round"
+        android:pathData="M13.5,13.5L25.3125,27.675" />
+
+    <!-- Hole in grip -->
+    <path
+        android:fillColor="#EEEEEE"
+        android:pathData="M16.2,16.2m-2.025,0a2.025,2.025 0,1 1,4.05 0a2.025,2.025 0,1 1,-4.05 0" />
+
+    <!-- Blue Collar -->
+    <path
+        android:strokeColor="#1565C0"
+        android:strokeWidth="11.8125"
+        android:strokeLineCap="round"
+        android:pathData="M40.5,43.875L50.625,55.6875" />
+
+    <!-- Mop Head -->
+    <path
+        android:fillColor="#F5F5F5"
+        android:strokeColor="#757575"
+        android:strokeWidth="3.375"
         android:strokeLineJoin="round"
-        android:strokeWidth="2"
-        android:pathData="M14,16l4,-4l4,4M18,12v8" />
+        android:pathData="M47.25,54Q40.5,77.625 60.75,87.75Q81,91.125 94.5,77.625Q77.625,67.5 54,60.75Z" />
+
+    <!-- Mop Strings (details) -->
+    <path
+        android:strokeColor="#BDBDBD"
+        android:strokeWidth="3.375"
+        android:strokeLineCap="round"
+        android:pathData="M48.9375,60.75Q50.625,74.25 64.125,82.6875" />
+    <path
+        android:strokeColor="#BDBDBD"
+        android:strokeWidth="3.375"
+        android:strokeLineCap="round"
+        android:pathData="M52.3125,57.375Q64.125,70.875 81,79.3125" />
+    <path
+        android:strokeColor="#BDBDBD"
+        android:strokeWidth="3.375"
+        android:strokeLineCap="round"
+        android:pathData="M54,55.6875Q70.875,64.125 87.75,74.25" />
+
 </vector>

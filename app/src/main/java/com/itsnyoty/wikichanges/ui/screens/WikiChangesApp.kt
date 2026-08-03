@@ -9,6 +9,7 @@ sealed class Screen(val route: String) {
     object Landing : Screen("landing")
     object RecentChanges : Screen("recent_changes")
     object Settings : Screen("settings")
+    object DeveloperSettings : Screen("developer_settings")
 }
 
 @Composable
@@ -27,6 +28,9 @@ fun WikiChangesApp() {
                     navController.navigate(Screen.RecentChanges.route) {
                         popUpTo(Screen.Landing.route) { inclusive = true }
                     }
+                },
+                onNavigateToDeveloperSettings = {
+                    navController.navigate(Screen.DeveloperSettings.route)
                 }
             )
         }
@@ -34,11 +38,19 @@ fun WikiChangesApp() {
             RecentChangesScreen(
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
+                },
+                onNavigateToDeveloperSettings = {
+                    navController.navigate(Screen.DeveloperSettings.route)
                 }
             )
         }
         composable(Screen.Settings.route) {
             SettingsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.DeveloperSettings.route) {
+            DeveloperSettingsScreen(
                 onBack = { navController.popBackStack() }
             )
         }

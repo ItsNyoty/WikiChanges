@@ -12,7 +12,12 @@
     <string name="cancel">Cancel</string>
     <string name="execute">Run</string>
     <string name="close">Close</string>
+    <string name="back">Back</string>
     <string name="delete">Delete</string>
+    <string name="filter_title">Filters</string>
+    <string name="apply">Apply</string>
+    <string name="profile_logged_in">Logged in to Wikimedia</string>
+    <string name="groups_colon">Groups: %1$s</string>
 
     <!-- Loading / empty / error -->
     <string name="loading">Loading…</string>
@@ -32,6 +37,7 @@
     <string name="filter_sort_oldest">Oldest first</string>
     <string name="filter_max">Max</string>
     <string name="filter_auto_refresh">Auto-refresh (sec)</string>
+    <string name="filter_auto_show">Auto show new changes</string>
     <string name="auto_refresh_off_hint">0 = off</string>
 
     <!-- Change card -->
@@ -54,7 +60,15 @@
     <string name="reason_block">Block reason</string>
 
     <!-- Diff -->
-    <string name="diff_title">Diff</string>
+    <string name="diff_title">Difference</string>
+    <string name="diff_version_of">Version of %1$s</string>
+    <string name="diff_current_version">Current version of %1$s</string>
+    <string name="diff_mark_patrolled">Mark as patrolled</string>
+    <string name="diff_talk">talk</string>
+    <string name="diff_contribs">contribs</string>
+    <string name="diff_block">block</string>
+    <string name="diff_undo">undo</string>
+    <string name="diff_thank">thank</string>
 
     <!-- Result messages -->
     <string name="change_patrolled">Change %1$s marked as patrolled</string>
@@ -89,6 +103,7 @@
     <string name="standard_wiki">Default wiki</string>
 
     <!-- Namespace labels -->
+    <string name="ns_all">All</string>
     <string name="ns_main">Main (0)</string>
     <string name="ns_talk">Talk (1)</string>
     <string name="ns_user">User (2)</string>
@@ -97,4 +112,18 @@
     <string name="ns_project_talk">Project talk (5)</string>
     <string name="ns_file">File (6)</string>
     <string name="ns_file_talk">File talk (7)</string>
+    <string name="ns_mediawiki">MediaWiki (8)</string>
+    <string name="ns_mediawiki_talk">MediaWiki talk (9)</string>
+    <string name="ns_template">Template (10)</string>
+    <string name="ns_template_talk">Template talk (11)</string>
+    <string name="ns_help">Help (12)</string>
+    <string name="ns_help_talk">Help talk (13)</string>
+    <string name="ns_category">Category (14)</string>
+    <string name="ns_category_talk">Category talk (15)</string>
+    <string name="ns_portal">Portal (100)</string>
+    <string name="ns_portal_talk">Portal talk (101)</string>
+
+    <!-- New changes -->
+    <string name="new_changes_found">%1$d new changes found</string>
+    <string name="scroll_to_top">Show</string>
 </resources>

@@ -1,38 +1,36 @@
 package com.itsnyoty.wikichanges.data.api
 
 import com.itsnyoty.wikichanges.data.model.*
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.Query
-import retrofit2.http.Url
-import retrofit2.http.Field
-import retrofit2.http.FormUrlEncoded
+import retrofit2.http.*
+import retrofit2.http.Query as RetrofitQuery
 
 interface WikipediaApiService {
     // Get recent changes
+    @Headers("Cache-Control: no-cache")
     @GET
     suspend fun getRecentChanges(
         @Url url: String,
-        @Query("action") action: String = "query",
-        @Query("list") list: String = "recentchanges",
-        @Query("rcprop") rcprop: String = "user|title|timestamp|flags|comment|sizes|ids|parsedcomment|patrolled",
-        @Query("rclimit") rclimit: Int = 50,
-        @Query("rcnamespace") rcnamespace: String = "0",
-        @Query("rcstart") rcstart: String? = null,
-        @Query("rcdir") rcdir: String = "older",
-        @Query("rctype") rctype: String = "edit|new",
-        @Query("rcshow") rcshow: String? = null,
-        @Query("format") format: String = "json"
+        @RetrofitQuery("action") action: String = "query",
+        @RetrofitQuery("list") list: String = "recentchanges",
+        @RetrofitQuery("rcprop") rcprop: String = "user|title|timestamp|flags|comment|sizes|ids|parsedcomment|patrolled",
+        @RetrofitQuery("rclimit") rclimit: Int = 50,
+        @RetrofitQuery("rcnamespace") rcnamespace: String? = null,
+        @RetrofitQuery("rcstart") rcstart: String? = null,
+        @RetrofitQuery("rcdir") rcdir: String = "older",
+        @RetrofitQuery("rctype") rctype: String = "edit|new",
+        @RetrofitQuery("rcshow") rcshow: String? = null,
+        @RetrofitQuery("curtimestamp") curtimestamp: String = "1",
+        @RetrofitQuery("format") format: String = "json"
     ): RecentChangesResponse
 
     // Get tokens
     @GET
     suspend fun getTokens(
         @Url url: String,
-        @Query("action") action: String = "query",
-        @Query("meta") meta: String = "tokens",
-        @Query("type") type: String = "rollback|block|thank|patrol|csrf",
-        @Query("format") format: String = "json"
+        @RetrofitQuery("action") action: String = "query",
+        @RetrofitQuery("meta") meta: String = "tokens",
+        @RetrofitQuery("type") type: String = "rollback|patrol|csrf",
+        @RetrofitQuery("format") format: String = "json"
     ): TokensResponse
 
     // Rollback
@@ -45,7 +43,8 @@ interface WikipediaApiService {
         @Field("user") user: String,
         @Field("id") id: Long,
         @Field("token") token: String,
-        @Field("summary") summary: String? = null
+        @Field("summary") summary: String? = null,
+        @Field("format") format: String = "json"
     ): RollbackResponse
 
     // Block user
@@ -64,7 +63,8 @@ interface WikipediaApiService {
         @Field("hideuser") hideUser: Boolean = false,
         @Field("noresetlog") noResetLog: Boolean = false,
         @Field("allowusertalk") allowUserTalk: Boolean = true,
-        @Field("blockemail") blockEmail: Boolean = false
+        @Field("blockemail") blockEmail: Boolean = false,
+        @Field("format") format: String = "json"
     ): BlockResponse
 
     // Thank user
@@ -74,7 +74,8 @@ interface WikipediaApiService {
         @Url url: String,
         @Field("action") action: String = "thanks",
         @Field("id") id: Long,
-        @Field("token") token: String
+        @Field("token") token: String,
+        @Field("format") format: String = "json"
     ): ThankResponse
 
     // Patrol
@@ -84,8 +85,9 @@ interface WikipediaApiService {
         @Url url: String,
         @Field("action") action: String = "patrol",
         @Field("rcid") rcid: Long,
-        @Field("token") token: String
-    ): Unit
+        @Field("token") token: String,
+        @Field("format") format: String = "json"
+    ): okhttp3.ResponseBody
 
     // Warn user (via API edit to user talk page as new section)
     @FormUrlEncoded
@@ -99,8 +101,9 @@ interface WikipediaApiService {
         @Field("text") text: String,
         @Field("summary") summary: String,
         @Field("token") token: String,
-        @Field("bot") bot: String = "true"
-    ): Unit
+        @Field("bot") bot: String = "true",
+        @Field("format") format: String = "json"
+    ): okhttp3.ResponseBody
 
     // Login
     @FormUrlEncoded
@@ -118,42 +121,42 @@ interface WikipediaApiService {
     @GET
     suspend fun getLoginToken(
         @Url url: String,
-        @Query("action") action: String = "query",
-        @Query("meta") meta: String = "tokens",
-        @Query("type") type: String = "login",
-        @Query("format") format: String = "json"
+        @RetrofitQuery("action") action: String = "query",
+        @RetrofitQuery("meta") meta: String = "tokens",
+        @RetrofitQuery("type") type: String = "login",
+        @RetrofitQuery("format") format: String = "json"
     ): TokensResponse
 
     // Get page info for base revision
     @GET
     suspend fun getPageInfo(
         @Url url: String,
-        @Query("action") action: String = "query",
-        @Query("prop") prop: String = "revisions",
-        @Query("titles") titles: String,
-        @Query("rvslots") rvslots: String = "main",
-        @Query("rvlimit") rvlimit: Int = 1,
-        @Query("format") format: String = "json"
+        @RetrofitQuery("action") action: String = "query",
+        @RetrofitQuery("prop") prop: String = "revisions",
+        @RetrofitQuery("titles") titles: String,
+        @RetrofitQuery("rvslots") rvslots: String = "main",
+        @RetrofitQuery("rvlimit") rvlimit: Int = 1,
+        @RetrofitQuery("format") format: String = "json"
     ): PageInfoResponse
 
     // Get current user's rights/groups on a specific wiki
     @GET
     suspend fun getUserRights(
         @Url url: String,
-        @Query("action") action: String = "query",
-        @Query("meta") meta: String = "userinfo",
-        @Query("uiprop") uiprop: String = "rights|groups",
-        @Query("format") format: String = "json"
+        @RetrofitQuery("action") action: String = "query",
+        @RetrofitQuery("meta") meta: String = "userinfo",
+        @RetrofitQuery("uiprop") uiprop: String = "rights|groups",
+        @RetrofitQuery("format") format: String = "json"
     ): UserInfoResponse
 
     // Compare two revisions and return HTML diff
     @GET
     suspend fun compareRevisions(
         @Url url: String,
-        @Query("action") action: String = "compare",
-        @Query("fromrev") fromRev: Long,
-        @Query("torev") toRev: Long,
-        @Query("prop") prop: String = "diff|title|ids",
-        @Query("format") format: String = "json"
+        @RetrofitQuery("action") action: String = "compare",
+        @RetrofitQuery("fromrev") fromRev: Long,
+        @RetrofitQuery("torev") toRev: Long,
+        @RetrofitQuery("prop") prop: String = "diff|title|ids",
+        @RetrofitQuery("format") format: String = "json"
     ): CompareResponse
 }

@@ -12,7 +12,12 @@
     <string name="cancel">Annuleren</string>
     <string name="execute">Uitvoeren</string>
     <string name="close">Sluiten</string>
+    <string name="back">Terug</string>
     <string name="delete">Verwijderen</string>
+    <string name="filter_title">Filters</string>
+    <string name="apply">Toepassen</string>
+    <string name="profile_logged_in">Ingelogd bij Wikimedia</string>
+    <string name="groups_colon">Groepen: %1$s</string>
 
     <!-- Loading / empty / error -->
     <string name="loading">Laden…</string>
@@ -24,7 +29,7 @@
     <string name="filter_only_anon">Alleen anoniemen</string>
     <string name="filter_hide_bots">Verberg bots</string>
     <string name="filter_only_unpatrolled">Alleen ongecontroleerd</string>
-    <string name="filter_hide_new_pages">Verberg nieuwe pagina's</string>
+    <string name="filter_hide_new_pages">Verberg nieuwe pagina\'s</string>
     <string name="filter_hide_minor">Verberg kleine bewerkingen</string>
     <string name="filter_namespace">Naamruimte</string>
     <string name="filter_sort">Sorteer</string>
@@ -32,6 +37,7 @@
     <string name="filter_sort_oldest">Oudste eerst</string>
     <string name="filter_max">Max</string>
     <string name="filter_auto_refresh">Auto-refresh (sec)</string>
+    <string name="filter_auto_show">Nieuwe wijzigingen direct tonen</string>
     <string name="auto_refresh_off_hint">0 = uit</string>
 
     <!-- Change card -->
@@ -55,6 +61,14 @@
 
     <!-- Diff -->
     <string name="diff_title">Verschil</string>
+    <string name="diff_version_of">Versie van %1$s</string>
+    <string name="diff_current_version">Huidige versie van %1$s</string>
+    <string name="diff_mark_patrolled">Markeren als gecontroleerd</string>
+    <string name="diff_talk">overleg</string>
+    <string name="diff_contribs">bijdragen</string>
+    <string name="diff_block">blokkeren</string>
+    <string name="diff_undo">ongedaan maken</string>
+    <string name="diff_thank">bedanken</string>
 
     <!-- Result messages -->
     <string name="change_patrolled">Wijziging %1$s gemarkeerd als goedgekeurd</string>
@@ -89,6 +103,7 @@
     <string name="standard_wiki">Standaard wiki</string>
 
     <!-- Namespace labels -->
+    <string name="ns_all">Alle</string>
     <string name="ns_main">Hoofdnaamruimte (0)</string>
     <string name="ns_talk">Overleg (1)</string>
     <string name="ns_user">Gebruiker (2)</string>
@@ -97,4 +112,18 @@
     <string name="ns_project_talk">Overleg Wikipedia (5)</string>
     <string name="ns_file">Bestand (6)</string>
     <string name="ns_file_talk">Bestandsoverleg (7)</string>
+    <string name="ns_mediawiki">MediaWiki (8)</string>
+    <string name="ns_mediawiki_talk">Overleg MediaWiki (9)</string>
+    <string name="ns_template">Sjabloon (10)</string>
+    <string name="ns_template_talk">Overleg sjabloon (11)</string>
+    <string name="ns_help">Hulp (12)</string>
+    <string name="ns_help_talk">Overleg hulp (13)</string>
+    <string name="ns_category">Categorie (14)</string>
+    <string name="ns_category_talk">Overleg categorie (15)</string>
+    <string name="ns_portal">Portaal (100)</string>
+    <string name="ns_portal_talk">Overleg portaal (101)</string>
+
+    <!-- New changes -->
+    <string name="new_changes_found">%1$d nieuwe wijzigingen gevonden</string>
+    <string name="scroll_to_top">Tonen</string>
 </resources>

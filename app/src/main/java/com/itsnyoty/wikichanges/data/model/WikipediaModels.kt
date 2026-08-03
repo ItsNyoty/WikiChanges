@@ -19,7 +19,8 @@ data class RecentChange(
     @SerializedName("type") val type: String = "",
     @SerializedName("bot") val bot: String? = null,
     @SerializedName("minor") val minor: String? = null,
-    @SerializedName("parsedcomment") val parsedComment: String? = null
+    @SerializedName("parsedcomment") val parsedComment: String? = null,
+    @SerializedName("sizediff") val sizeDiff: Int? = null
 )
 
 data class CompareResponse(
@@ -103,7 +104,8 @@ data class UserBlockResult(
 )
 
 data class BlockResponse(
-    @SerializedName("block") val block: UserBlockResult
+    @SerializedName("block") val block: UserBlockResult?,
+    @SerializedName("error") val error: ApiError? = null
 )
 
 data class RollbackResult(
@@ -120,7 +122,13 @@ data class RollbackResult(
 )
 
 data class RollbackResponse(
-    @SerializedName("rollback") val rollback: RollbackResult
+    @SerializedName("rollback") val rollback: RollbackResult?,
+    @SerializedName("error") val error: ApiError? = null
+)
+
+data class ApiError(
+    @SerializedName("code") val code: String?,
+    @SerializedName("info") val info: String?
 )
 
 data class ThankResult(
@@ -135,7 +143,8 @@ data class ThankResult(
 )
 
 data class ThankResponse(
-    @SerializedName("thanks") val thanks: ThankResult
+    @SerializedName("thanks") val thanks: ThankResult?,
+    @SerializedName("error") val error: ApiError? = null
 )
 
 data class WarningResult(

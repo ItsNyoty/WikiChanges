@@ -1,31 +1,49 @@
 package com.itsnyoty.wikichanges.ui.screens
 
-import android.net.Uri
-import androidx.browser.customtabs.CustomTabsIntent
+import android.webkit.WebView
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.itsnyoty.wikichanges.R
-import com.itsnyoty.wikichanges.data.model.*
+import com.itsnyoty.wikichanges.data.model.RecentChange
+import com.itsnyoty.wikichanges.data.model.RecentChangesFilters
+import com.itsnyoty.wikichanges.data.model.UiState
+import com.itsnyoty.wikichanges.data.model.formatTimestamp
+import com.itsnyoty.wikichanges.data.model.getByteDifference
+import com.itsnyoty.wikichanges.data.model.isPatrolled
+import com.itsnyoty.wikichanges.ui.theme.WikiGreen
+import com.itsnyoty.wikichanges.ui.theme.WikiRed
 import com.itsnyoty.wikichanges.ui.viewmodel.BadEditAction
 import com.itsnyoty.wikichanges.ui.viewmodel.RecentChangesViewModel
 import com.itsnyoty.wikichanges.ui.viewmodel.WikiChangesViewModelProvider
@@ -36,6 +54,7 @@ import kotlinx.coroutines.isActive
 @Composable
 fun RecentChangesScreen(
     onNavigateToSettings: () -> Unit,
+    onNavigateToDeveloperSettings: () -> Unit,
     viewModel: RecentChangesViewModel = viewModel(factory = WikiChangesViewModelProvider.recentChangesFactory)
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -44,17 +63,37 @@ fun RecentChangesScreen(
     val actionState by viewModel.actionState.collectAsState()
     val userRights by viewModel.userRights.collectAsState()
     val filters by viewModel.filters.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val newItemsCount by viewModel.newItemsCount.collectAsState()
+    val diffState by viewModel.diffState.collectAsState()
+    val activeDiffChange by viewModel.activeDiffChange.collectAsState()
 
+    val context = LocalContext.current
+    val listState = rememberLazyListState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val sheetState = rememberModalBottomSheetState()
     var showWikiMenu by remember { mutableStateOf(false) }
+    var showFilterSheet by remember { mutableStateOf(false) }
+    var showBadBottomSheet by remember { mutableStateOf<RecentChange?>(null) }
+    var logoClicks by remember { mutableStateOf(0) }
 
     // Auto-refresh loop
-    LaunchedEffect(filters.autoRefreshSeconds) {
+    LaunchedEffect(filters.autoRefreshSeconds, selectedWiki) {
         if (filters.autoRefreshSeconds <= 0) return@LaunchedEffect
         while (isActive) {
             delay(filters.autoRefreshSeconds * 1000L)
             viewModel.refresh()
+        }
+    }
+
+    // Auto-scroll to top when new items arrive if we are already near the top
+    val firstVisibleItemIndex by remember { derivedStateOf { listState.firstVisibleItemIndex } }
+    val firstVisibleItemScrollOffset by remember { derivedStateOf { listState.firstVisibleItemScrollOffset } }
+    
+    LaunchedEffect(uiState) {
+        if (uiState is UiState.Success && (filters.autoShowNewChanges || (firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset < 100))) {
+            // If we are at the top, or auto-show is enabled, stay/go to the top when new items arrive
+            listState.animateScrollToItem(0)
         }
     }
 
@@ -72,6 +111,20 @@ fun RecentChangesScreen(
         }
     }
 
+    LaunchedEffect(newItemsCount) {
+        if (newItemsCount > 0) {
+            val result = snackbarHostState.showSnackbar(
+                message = context.getString(R.string.new_changes_found, newItemsCount),
+                actionLabel = context.getString(R.string.scroll_to_top),
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                listState.animateScrollToItem(0)
+            }
+            viewModel.clearNewItemsCount()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -80,16 +133,25 @@ fun RecentChangesScreen(
                         Image(
                             painter = painterResource(id = R.drawable.ic_favicon),
                             contentDescription = null,
-                            modifier = Modifier.size(32.dp).clip(RoundedCornerShape(4.dp))
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable {
+                                    logoClicks++
+                                    if (logoClicks >= 10) {
+                                        logoClicks = 0
+                                        onNavigateToDeveloperSettings()
+                                    }
+                                }
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("WikiChanges")
+                        Text(stringResource(R.string.app_name))
                     }
                 },
                 actions = {
                     Box {
                         TextButton(onClick = { showWikiMenu = true }) {
-                            Text(selectedWiki?.code?.uppercase() ?: "WIKI")
+                            Text(selectedWiki?.code?.uppercase() ?: stringResource(R.string.wiki_selector))
                         }
                         DropdownMenu(
                             expanded = showWikiMenu,
@@ -106,11 +168,17 @@ fun RecentChangesScreen(
                             }
                         }
                     }
+                    IconButton(onClick = { showFilterSheet = true }) {
+                        Icon(
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = stringResource(R.string.filters)
+                        )
+                    }
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Vernieuwen")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
                     }
                     IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Instellingen")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
                     }
                 }
             )
@@ -119,7 +187,7 @@ fun RecentChangesScreen(
         floatingActionButton = {
             if (uiState is UiState.Success) {
                 FloatingActionButton(onClick = { viewModel.loadRecentChanges(loadMore = true) }) {
-                    Icon(Icons.Default.Add, contentDescription = "Meer laden")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.load_more))
                 }
             }
         }
@@ -129,20 +197,18 @@ fun RecentChangesScreen(
                 .padding(padding)
                 .fillMaxSize()
         ) {
-            val canPatrol = userRights.contains("patrol")
+            if (isRefreshing) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
 
-            FilterPanel(
-                filters = filters,
-                canReadPatrolMarks = canPatrol,
-                onFilterChange = { newFilters ->
-                    viewModel.updateFilters { newFilters }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
                 when (uiState) {
-                    is UiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+                    is UiState.Loading -> CircularProgressIndicator()
                     is UiState.Error -> ErrorView(
                         message = (uiState as UiState.Error).message,
                         onRetry = { viewModel.refresh() }
@@ -152,40 +218,88 @@ fun RecentChangesScreen(
                         RecentChangesList(
                             changes = (uiState as UiState.Success<List<RecentChange>>).data,
                             userRights = userRights,
+                            listState = listState,
                             onGood = { viewModel.markAsGood(it) },
-                            onBad = { change, action, reason ->
-                                viewModel.markAsBad(change, action, reason)
-                            },
-                            onViewDiff = { change ->
-                                val wiki = selectedWiki
-                                val revId = change.oldRevid
-                                if (wiki != null && revId != null) {
-                                    val url = "${wiki.baseUrl}/w/index.php?diff=prev&oldid=$revId"
-                                    CustomTabsIntent.Builder().build()
-                                        .launchUrl(context, Uri.parse(url))
-                                }
-                            }
+                            onBad = { change, _, _ -> showBadBottomSheet = change },
+                            onViewDiff = { change -> viewModel.loadDiff(change) }
                         )
                     }
                 }
             }
         }
     }
+
+    diffState?.let { state ->
+        activeDiffChange?.let { change ->
+            DiffDialog(
+                state = state,
+                change = change,
+                userRights = userRights,
+                actionState = actionState,
+                onPatrol = { viewModel.markAsGood(change, autoNext = true) },
+                onBadAction = { showBadBottomSheet = change },
+                onNext = { viewModel.navigateToNext() },
+                onPrevious = { viewModel.navigateToPrevious() },
+                onDismiss = { viewModel.clearDiffState() },
+                onClearAction = { viewModel.clearActionState() }
+            )
+        }
+    }
+
+    if (showFilterSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showFilterSheet = false },
+            sheetState = sheetState
+        ) {
+            FilterSheetContent(
+                filters = filters,
+                canReadPatrolMarks = userRights.contains("patrol"),
+                onFilterChange = { viewModel.updateFilters { it } },
+                onClose = { showFilterSheet = false }
+            )
+        }
+    }
+
+    showBadBottomSheet?.let { change ->
+        BadActionBottomSheet(
+            change = change,
+            userRights = userRights,
+            onAction = { action, reason, rb, expiry ->
+                viewModel.performBadAction(change, action, reason, rb, expiry)
+                showBadBottomSheet = null
+            },
+            onDismiss = { showBadBottomSheet = null }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun FilterPanel(
+private fun FilterSheetContent(
     filters: RecentChangesFilters,
     canReadPatrolMarks: Boolean,
     onFilterChange: (RecentChangesFilters) -> Unit,
-    modifier: Modifier = Modifier
+    onClose: () -> Unit
 ) {
     Column(
-        modifier = modifier
-            .padding(8.dp)
+        modifier = Modifier
             .fillMaxWidth()
+            .padding(16.dp)
+            .navigationBarsPadding()
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(stringResource(R.string.filter_title), style = MaterialTheme.typography.headlineSmall)
+            IconButton(onClick = onClose) {
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -193,81 +307,96 @@ private fun FilterPanel(
             FilterChip(
                 selected = filters.onlyAnon,
                 onClick = { onFilterChange(filters.copy(onlyAnon = !filters.onlyAnon)) },
-                label = { Text("Alleen anoniemen") }
+                label = { Text(stringResource(R.string.filter_only_anon)) }
             )
             FilterChip(
                 selected = filters.hideBots,
                 onClick = { onFilterChange(filters.copy(hideBots = !filters.hideBots)) },
-                label = { Text("Verberg bots") }
+                label = { Text(stringResource(R.string.filter_hide_bots)) }
             )
             FilterChip(
                 selected = filters.onlyUnpatrolled && canReadPatrolMarks,
                 onClick = { onFilterChange(filters.copy(onlyUnpatrolled = !filters.onlyUnpatrolled)) },
-                label = { Text("Alleen ongecontroleerd") },
+                label = { Text(stringResource(R.string.filter_only_unpatrolled)) },
                 enabled = canReadPatrolMarks
             )
             FilterChip(
                 selected = filters.hideNewPages,
                 onClick = { onFilterChange(filters.copy(hideNewPages = !filters.hideNewPages)) },
-                label = { Text("Verberg nieuwe pagina's") }
+                label = { Text(stringResource(R.string.filter_hide_new_pages)) }
             )
             FilterChip(
                 selected = filters.hideMinor,
                 onClick = { onFilterChange(filters.copy(hideMinor = !filters.hideMinor)) },
-                label = { Text("Verberg kleine bewerkingen") }
+                label = { Text(stringResource(R.string.filter_hide_minor)) }
+            )
+            FilterChip(
+                selected = filters.autoShowNewChanges,
+                onClick = { onFilterChange(filters.copy(autoShowNewChanges = !filters.autoShowNewChanges)) },
+                label = { Text(stringResource(R.string.filter_auto_show)) }
             )
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(16.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             NamespaceDropdown(
                 selected = filters.namespace,
                 onSelect = { onFilterChange(filters.copy(namespace = it)) },
-                modifier = Modifier.weight(1.5f)
+                modifier = Modifier.fillMaxWidth()
             )
             SortDropdown(
                 newestFirst = filters.sortNewestFirst,
                 onSelect = { onFilterChange(filters.copy(sortNewestFirst = it)) },
-                modifier = Modifier.weight(1.5f)
+                modifier = Modifier.fillMaxWidth()
             )
-            OutlinedTextField(
-                value = filters.limit.toString(),
-                onValueChange = { value ->
-                    value.toIntOrNull()?.let { newLimit ->
-                        onFilterChange(filters.copy(limit = newLimit.coerceIn(1, 500)))
-                    }
-                },
-                label = { Text("Max") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.weight(1f)
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                NumberTextField(
+                    value = filters.limit,
+                    onValueChange = { onFilterChange(filters.copy(limit = it.coerceIn(1, 500))) },
+                    label = stringResource(R.string.filter_max),
+                    modifier = Modifier.weight(1f)
+                )
+                NumberTextField(
+                    value = filters.autoRefreshSeconds,
+                    onValueChange = { onFilterChange(filters.copy(autoRefreshSeconds = it.coerceAtLeast(0))) },
+                    label = stringResource(R.string.filter_auto_refresh),
+                    supportingText = stringResource(R.string.auto_refresh_off_hint),
+                    modifier = Modifier.weight(1.5f)
+                )
+            }
         }
 
-        Spacer(Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = filters.autoRefreshSeconds.toString(),
-            onValueChange = { value ->
-                value.toIntOrNull()?.let { seconds ->
-                    onFilterChange(filters.copy(autoRefreshSeconds = seconds.coerceAtLeast(0)))
-                }
-            },
-            label = { Text("Auto-refresh (sec)") },
-            supportingText = { Text("0 = uit") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        Spacer(Modifier.height(24.dp))
+        Button(
+            onClick = onClose,
             modifier = Modifier.fillMaxWidth()
-        )
+        ) {
+            Text(stringResource(R.string.apply))
+        }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun NumberTextField(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    supportingText: String? = null
+) {
+    OutlinedTextField(
+        value = value.toString(),
+        onValueChange = { it.toIntOrNull()?.let(onValueChange) },
+        label = { Text(label, maxLines = 1) },
+        supportingText = supportingText?.let { { Text(it, style = MaterialTheme.typography.labelSmall) } },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = modifier
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NamespaceDropdown(
     selected: String,
@@ -275,7 +404,28 @@ private fun NamespaceDropdown(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val label = NamespaceOptions.find { it.first == selected }?.second ?: selected
+    val options = listOf(
+        "" to stringResource(R.string.ns_all),
+        "0" to stringResource(R.string.ns_main),
+        "1" to stringResource(R.string.ns_talk),
+        "2" to stringResource(R.string.ns_user),
+        "3" to stringResource(R.string.ns_user_talk),
+        "4" to stringResource(R.string.ns_project),
+        "5" to stringResource(R.string.ns_project_talk),
+        "6" to stringResource(R.string.ns_file),
+        "7" to stringResource(R.string.ns_file_talk),
+        "8" to stringResource(R.string.ns_mediawiki),
+        "9" to stringResource(R.string.ns_mediawiki_talk),
+        "10" to stringResource(R.string.ns_template),
+        "11" to stringResource(R.string.ns_template_talk),
+        "12" to stringResource(R.string.ns_help),
+        "13" to stringResource(R.string.ns_help_talk),
+        "14" to stringResource(R.string.ns_category),
+        "15" to stringResource(R.string.ns_category_talk),
+        "100" to stringResource(R.string.ns_portal),
+        "101" to stringResource(R.string.ns_portal_talk)
+    )
+    val label = options.find { it.first == selected }?.second ?: selected
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -286,7 +436,7 @@ private fun NamespaceDropdown(
             value = label,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Naamruimte") },
+            label = { Text(stringResource(R.string.filter_namespace)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.menuAnchor(),
             singleLine = true
@@ -295,7 +445,7 @@ private fun NamespaceDropdown(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            NamespaceOptions.forEach { (value, text) ->
+            options.forEach { (value, text) ->
                 DropdownMenuItem(
                     text = { Text(text) },
                     onClick = {
@@ -308,7 +458,7 @@ private fun NamespaceDropdown(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SortDropdown(
     newestFirst: Boolean,
@@ -317,8 +467,8 @@ private fun SortDropdown(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val options = listOf(
-        true to "Nieuwste eerst",
-        false to "Oudste eerst"
+        true to stringResource(R.string.filter_sort_newest),
+        false to stringResource(R.string.filter_sort_oldest)
     )
     val label = options.find { it.first == newestFirst }?.second ?: ""
 
@@ -331,7 +481,7 @@ private fun SortDropdown(
             value = label,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Sorteer") },
+            label = { Text(stringResource(R.string.filter_sort)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.menuAnchor(),
             singleLine = true
@@ -360,11 +510,11 @@ private fun ErrorView(message: String, onRetry: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Fout bij ophalen", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.error_loading), style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(8.dp))
         Text(message)
         Spacer(Modifier.height(16.dp))
-        Button(onClick = onRetry) { Text("Opnieuw proberen") }
+        Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
     }
 }
 
@@ -374,7 +524,7 @@ private fun EmptyView() {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Text("Geen recente wijzigingen gevonden", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.no_changes_found), style = MaterialTheme.typography.titleMedium)
     }
 }
 
@@ -382,12 +532,13 @@ private fun EmptyView() {
 private fun RecentChangesList(
     changes: List<RecentChange>,
     userRights: List<String>,
+    listState: LazyListState,
     onGood: (RecentChange) -> Unit,
     onBad: (RecentChange, BadEditAction, String) -> Unit,
     onViewDiff: (RecentChange) -> Unit
 ) {
-    LazyColumn {
-        items(changes, key = { it.id }) { change ->
+    LazyColumn(state = listState) {
+        items(changes, key = { "${it.id}_${it.timestamp}" }) { change ->
             ChangeCard(
                 change = change,
                 userRights = userRights,
@@ -399,7 +550,7 @@ private fun RecentChangesList(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChangeCard(
     change: RecentChange,
@@ -409,62 +560,68 @@ private fun ChangeCard(
     onViewDiff: (RecentChange) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var showBadDialog by remember { mutableStateOf(false) }
-    var selectedBadAction by remember { mutableStateOf(BadEditAction.ROLLBACK) }
-    var reasonText by remember { mutableStateOf("") }
-    var showReasonDialog by remember { mutableStateOf(false) }
 
     val canPatrol = userRights.contains("patrol")
     val canRollback = userRights.contains("rollback")
-    val canBlock = userRights.contains("block")
     val canEdit = userRights.contains("edit")
 
     val byteDiff = change.getByteDifference()
     val diffColor = when {
         byteDiff == null -> MaterialTheme.colorScheme.onSurface
-        byteDiff > 0 -> com.itsnyoty.wikichanges.ui.theme.WikiGreen
-        byteDiff < 0 -> com.itsnyoty.wikichanges.ui.theme.WikiRed
+        byteDiff > 0 -> WikiGreen
+        byteDiff < 0 -> WikiRed
         else -> MaterialTheme.colorScheme.onSurface
     }
 
-    Card(
+    OutlinedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
-            .clickable { expanded = !expanded },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = change.title?.replace("_", " ") ?: "Onbekende pagina",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onViewDiff(change) }
+                ) {
+                    Text(
+                        text = change.title?.replace("_", " ") ?: stringResource(R.string.unknown_page),
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = stringResource(R.string.user_colon, change.user ?: stringResource(R.string.unknown_user)),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = change.formatTimestamp(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
                 if (byteDiff != null) {
                     Text(
                         text = if (byteDiff > 0) "+${byteDiff}" else byteDiff.toString(),
                         color = diffColor,
-                        style = MaterialTheme.typography.labelLarge
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
+
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = stringResource(R.string.filters)
                     )
                 }
             }
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "Gebruiker: ${change.user ?: "onbekend"}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                text = change.formatTimestamp(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
 
             if (!change.comment.isNullOrBlank()) {
                 Spacer(Modifier.height(8.dp))
@@ -472,145 +629,506 @@ private fun ChangeCard(
                     text = change.comment,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = if (expanded) Int.MAX_VALUE else 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.clickable { onViewDiff(change) }
                 )
             }
 
-            if (expanded) {
-                Spacer(Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = { onGood(change) },
-                        colors = ButtonDefaults.buttonColors(containerColor = com.itsnyoty.wikichanges.ui.theme.WikiGreen),
-                        modifier = Modifier.weight(1f),
-                        enabled = canPatrol
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.padding(top = 12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Goed")
+                        Button(
+                            onClick = { onGood(change) },
+                            colors = ButtonDefaults.buttonColors(containerColor = WikiGreen),
+                            modifier = Modifier.weight(1f),
+                            enabled = canPatrol
+                        ) {
+                            Text(stringResource(R.string.action_good))
+                        }
+                        Button(
+                            onClick = { onBad(change, BadEditAction.ROLLBACK, "") },
+                            colors = ButtonDefaults.buttonColors(containerColor = WikiRed),
+                            modifier = Modifier.weight(1f),
+                            enabled = canRollback || canEdit
+                        ) {
+                            Text(stringResource(R.string.action_bad))
+                        }
                     }
-                    Button(
-                        onClick = {
-                            selectedBadAction = BadEditAction.ROLLBACK
-                            showBadDialog = true
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = com.itsnyoty.wikichanges.ui.theme.WikiRed),
-                        modifier = Modifier.weight(1f),
-                        enabled = canRollback
-                    ) {
-                        Text("Slecht")
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = {
-                        selectedBadAction = BadEditAction.WARNING
-                        showBadDialog = true
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = canEdit
-                ) {
-                    Text("Waarschuwing sturen")
-                }
-                Spacer(Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = { onViewDiff(change) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = change.oldRevid != null
-                ) {
-                    Text("Verschil bekijken")
                 }
             }
         }
     }
+}
 
-    if (showBadDialog) {
-        AlertDialog(
-            onDismissRequest = { showBadDialog = false },
-            title = { Text("Actie kiezen") },
-            text = {
-                Column {
-                    Text("Welke actie wil je uitvoeren?")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    BadEditAction.values().forEach { action ->
-                        val enabled = when (action) {
-                            BadEditAction.ROLLBACK -> canRollback
-                            BadEditAction.WARNING -> canEdit
-                            BadEditAction.BLOCK -> canBlock
-                        }
-                        val suffix = if (enabled) "" else " (geen recht)"
+@Composable
+private fun DiffDialog(
+    state: UiState<String>,
+    change: RecentChange,
+    userRights: List<String>,
+    actionState: UiState<String>? = null,
+    onPatrol: () -> Unit,
+    onBadAction: () -> Unit,
+    onNext: () -> Unit,
+    onPrevious: () -> Unit,
+    onDismiss: () -> Unit,
+    onClearAction: () -> Unit = {}
+) {
+    val canPatrol = userRights.contains("patrol")
+    val canRollback = userRights.contains("rollback")
+    val canEdit = userRights.contains("edit")
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    
+    LaunchedEffect(actionState) {
+        when (actionState) {
+            is UiState.Success -> {
+                snackbarHostState.showSnackbar(actionState.data)
+                onClearAction()
+            }
+            is UiState.Error -> {
+                snackbarHostState.showSnackbar(actionState.message)
+                onClearAction()
+            }
+            else -> {}
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            containerColor = Color.Transparent,
+            snackbarHost = { SnackbarHost(snackbarHostState) }
+        ) { padding ->
+            Surface(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize(),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Header met acties en navigatie
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable(enabled = enabled) {
-                                    selectedBadAction = action
-                                    showBadDialog = false
-                                    showReasonDialog = true
-                                }
-                                .padding(8.dp),
+                                .padding(horizontal = 8.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            RadioButton(
-                                selected = selectedBadAction == action,
-                                enabled = enabled,
-                                onClick = {
-                                    selectedBadAction = action
-                                    showBadDialog = false
-                                    showReasonDialog = true
-                                }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(onClick = onPrevious) {
+                                Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Vorig")
+                            }
                             Text(
-                                text = when (action) {
-                                    BadEditAction.ROLLBACK -> "Terugdraaien (rollback)$suffix"
-                                    BadEditAction.WARNING -> "Waarschuwing sturen$suffix"
-                                    BadEditAction.BLOCK -> "Gebruiker blokkeren$suffix"
-                                }
+                                text = change.title?.replace("_", " ") ?: stringResource(R.string.unknown_page),
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
+                            IconButton(onClick = onNext) {
+                                Icon(Icons.Default.ArrowForwardIos, contentDescription = "Volgend")
+                            }
+                            IconButton(onClick = onDismiss) {
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
+                            }
+                        }
+                        Divider()
+
+                        // Diff Informatie Header (Wikipedia stijl)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                DiffHeaderColumn(
+                                    modifier = Modifier.weight(1f),
+                                    label = stringResource(R.string.diff_version_of, change.formatTimestamp()),
+                                    user = change.user ?: stringResource(R.string.unknown_user)
+                                )
+                                Spacer(Modifier.width(16.dp))
+                                DiffHeaderColumn(
+                                    modifier = Modifier.weight(1f),
+                                    label = stringResource(R.string.diff_current_version, "nu"),
+                                    user = change.user ?: stringResource(R.string.unknown_user),
+                                    isCurrent = true
+                                )
+                            }
+
+                            if (!change.comment.isNullOrBlank()) {
+                                Spacer(Modifier.height(12.dp))
+                                Text(
+                                    text = "(${change.comment})",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+
+                            Spacer(Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (canPatrol && !change.isPatrolled()) {
+                                    Button(
+                                        onClick = onPatrol,
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = WikiGreen)
+                                    ) {
+                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(stringResource(R.string.action_good))
+                                    }
+                                }
+                                
+                                Button(
+                                    onClick = onBadAction,
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    enabled = canRollback || canEdit,
+                                    colors = ButtonDefaults.buttonColors(containerColor = WikiRed)
+                                ) {
+                                    Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(stringResource(R.string.action_bad))
+                                }
+                            }
+                        }
+                        Divider()
+
+                        // De eigenlijke diff (WebView)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                        ) {
+                            when (state) {
+                                is UiState.Loading -> { /* Centered indicator is handled by parent Box */ }
+                                is UiState.Error -> Text(
+                                    state.message,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.align(Alignment.Center).padding(16.dp),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                                is UiState.Success -> {
+                                    val isDark = isSystemInDarkTheme()
+                                    val html = wrapDiffHtml(state.data, isDark)
+                                    AndroidView(
+                                        factory = { context ->
+                                            WebView(context).apply {
+                                                settings.javaScriptEnabled = false
+                                                setBackgroundColor(0)
+                                            }
+                                        },
+                                        update = { webView ->
+                                            webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
+                                        },
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                                else -> {}
+                            }
                         }
                     }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showBadDialog = false }) { Text("Annuleren") }
-            }
-        )
-    }
 
-    if (showReasonDialog) {
-        AlertDialog(
-            onDismissRequest = { showReasonDialog = false },
-            title = {
-                Text(
-                    when (selectedBadAction) {
-                        BadEditAction.ROLLBACK -> "Reden voor terugdraaien"
-                        BadEditAction.WARNING -> "Waarschuwingstemplate kiezen"
-                        BadEditAction.BLOCK -> "Reden voor blokkade"
+                    if (state is UiState.Loading) {
+                        CircularProgressIndicator()
                     }
-                )
-            },
-            text = {
-                OutlinedTextField(
-                    value = reasonText,
-                    onValueChange = { reasonText = it },
-                    label = { Text("Reden / opmerking") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showReasonDialog = false
-                        onBad(change, selectedBadAction, reasonText)
-                        reasonText = ""
-                    }
-                ) { Text("Uitvoeren") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showReasonDialog = false }) { Text("Annuleren") }
+                }
             }
-        )
+        }
     }
+}
+
+@Composable
+private fun BadActionBottomSheet(
+    change: RecentChange,
+    userRights: List<String>,
+    onAction: (BadEditAction, String, Boolean, String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedAction by remember { mutableStateOf<BadEditAction?>(null) }
+    var reason by remember { mutableStateOf("") }
+    var rollbackToo by remember { mutableStateOf(true) }
+    var expiry by remember { mutableStateOf("1 week") }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            // Scrim
+            Surface(
+                modifier = Modifier.fillMaxSize().clickable { onDismiss() },
+                color = Color.Black.copy(alpha = 0.4f)
+            ) {}
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .clip(RoundedCornerShape(24.dp)),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 12.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .navigationBarsPadding()
+                ) {
+                    if (selectedAction == null) {
+                        Text(stringResource(R.string.choose_action), style = MaterialTheme.typography.titleLarge)
+                        Spacer(Modifier.height(16.dp))
+                        
+                        ActionItem(
+                            title = stringResource(R.string.action_rollback),
+                            icon = Icons.Default.History,
+                            enabled = userRights.contains("rollback"),
+                            onClick = { onAction(BadEditAction.ROLLBACK, "", false, "") }
+                        )
+                        ActionItem(
+                            title = stringResource(R.string.action_warning),
+                            icon = Icons.Default.Warning,
+                            enabled = userRights.contains("edit"),
+                            onClick = { selectedAction = BadEditAction.WARNING }
+                        )
+                        ActionItem(
+                            title = stringResource(R.string.action_block),
+                            icon = Icons.Default.Block,
+                            enabled = userRights.contains("block"),
+                            onClick = { selectedAction = BadEditAction.BLOCK }
+                        )
+                    } else {
+                        Text(
+                            text = when(selectedAction) {
+                                BadEditAction.WARNING -> stringResource(R.string.action_warning)
+                                BadEditAction.BLOCK -> stringResource(R.string.action_block)
+                                else -> ""
+                            },
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        
+                        OutlinedTextField(
+                            value = reason,
+                            onValueChange = { reason = it },
+                            label = { Text(stringResource(R.string.reason_placeholder)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        
+                        if (selectedAction == BadEditAction.BLOCK) {
+                            Spacer(Modifier.height(12.dp))
+                            Text("Duur van blokkade", style = MaterialTheme.typography.labelMedium)
+                            val periods = listOf(
+                                "31 hours", "1 day", "3 days", "1 week", "2 weeks", 
+                                "1 month", "3 months", "6 months", "1 year", "infinite"
+                            )
+                            Row(Modifier.horizontalScroll(rememberScrollState())) {
+                                periods.forEach { p ->
+                                    FilterChip(
+                                        selected = expiry == p,
+                                        onClick = { expiry = p },
+                                        label = { Text(p) },
+                                        modifier = Modifier.padding(end = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                        
+                        Spacer(Modifier.height(12.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = rollbackToo, onCheckedChange = { rollbackToo = it })
+                            Text("Ook wijzigingen terugdraaien", style = MaterialTheme.typography.bodyMedium)
+                        }
+                        
+                        Spacer(Modifier.height(24.dp))
+                        Button(
+                            onClick = { onAction(selectedAction!!, reason, rollbackToo, expiry) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = WikiRed)
+                        ) {
+                            Text(stringResource(R.string.execute))
+                        }
+                        TextButton(
+                            onClick = { selectedAction = null },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(R.string.back))
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionItem(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = color)
+        Spacer(Modifier.width(16.dp))
+        Text(title, style = MaterialTheme.typography.bodyLarge, color = color)
+        if (!enabled) {
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.no_right_suffix), style = MaterialTheme.typography.bodySmall, color = color)
+        }
+    }
+}
+
+@Composable
+private fun DiffHeaderColumn(
+    modifier: Modifier = Modifier,
+    label: String,
+    user: String,
+    isCurrent: Boolean = false
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(4.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                Icons.Default.Person,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = user,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary,
+                fontWeight = FontWeight.Bold,
+                textDecoration = TextDecoration.Underline,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 2.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            DiffActionText(stringResource(R.string.diff_talk))
+            Text("|", style = MaterialTheme.typography.labelSmall, color = Color.Gray, modifier = Modifier.padding(horizontal = 4.dp))
+            DiffActionText(stringResource(R.string.diff_contribs))
+            Text("|", style = MaterialTheme.typography.labelSmall, color = Color.Gray, modifier = Modifier.padding(horizontal = 4.dp))
+            DiffActionText(stringResource(R.string.diff_block))
+        }
+    }
+}
+
+@Composable
+private fun DiffActionText(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.primary,
+        fontSize = 10.sp
+    )
+}
+
+private fun wrapDiffHtml(body: String, isDark: Boolean): String {
+    val background = if (isDark) "#1c1b1f" else "#ffffff"
+    val foreground = if (isDark) "#e6e1e5" else "#1c1b1f"
+    val deletedBg = if (isDark) "#4a3a00" else "#feeec8" // Geelachtig voor verwijderd (Wikipedia stijl)
+    val addedBg = if (isDark) "#2a3a4a" else "#d8ecff"   // Blauwachtig voor toegevoegd (Wikipedia stijl)
+    val deletedBorder = if (isDark) "#7a6a00" else "#fbdc8a"
+    val addedBorder = if (isDark) "#3a5a7a" else "#a3d3ff"
+
+    return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body { font-family: sans-serif; margin: 0; background: $background; color: $foreground; line-height: 1.4; }
+                .diff-wrapper { padding: 4px; }
+                table.diff { border-collapse: separate; border-spacing: 4px; width: 100%; font-size: 11px; table-layout: fixed; margin: 0 auto; }
+                
+                td { 
+                    padding: 6px; 
+                    vertical-align: top; 
+                    word-wrap: break-word; 
+                    overflow-wrap: anywhere; 
+                    border-radius: 4px; 
+                    border: 1px solid transparent;
+                }
+                
+                /* Target columns: markers (widths) and content (alignment) */
+                .diff-marker { width: 10px; text-align: right; color: #888; font-weight: bold; }
+                .diff-content { text-align: left !important; }
+                .diff-context { background: transparent; color: #888; text-align: left !important; }
+                
+                .diff-deletedline { background: $deletedBg; border-color: $deletedBorder; }
+                .diff-addedline { background: $addedBg; border-color: $addedBorder; }
+                
+                .diffchange { 
+                    background: rgba(255,255,255,0.3); 
+                    font-weight: bold; 
+                }
+                
+                .diff-deletedline .diffchange { background: rgba(255, 100, 100, 0.15); text-decoration: line-through; }
+                .diff-addedline .diffchange { background: rgba(100, 100, 255, 0.15); text-decoration: underline; }
+                
+                .diff-lineno { color: #888; font-size: 10px; padding: 4px 0; text-align: center !important; }
+                
+                .diff-ntitle, .diff-otitle { display: none; }
+            </style>
+        </head>
+        <body>
+            <div class="diff-wrapper">
+                <table class="diff">$body</table>
+            </div>
+        </body>
+        </html>
+    """.trimIndent()
 }

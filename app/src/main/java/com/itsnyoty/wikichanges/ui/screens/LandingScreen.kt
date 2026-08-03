@@ -2,6 +2,7 @@ package com.itsnyoty.wikichanges.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -28,6 +29,7 @@ import kotlinx.coroutines.launch
 fun LandingScreen(
     onSkip: () -> Unit,
     onAuthenticated: () -> Unit,
+    onNavigateToDeveloperSettings: () -> Unit,
     oAuthManager: OAuthManager = OAuthManager.getInstance(LocalContext.current)
 ) {
     val context = LocalContext.current
@@ -39,6 +41,8 @@ fun LandingScreen(
     LaunchedEffect(accessToken) {
         if (!accessToken.isNullOrBlank()) onAuthenticated()
     }
+
+    var logoClicks by remember { mutableStateOf(0) }
 
     // Wikimedia-groene tint
     val wikimediaGreen = Color(0xFF00695C)
@@ -66,6 +70,13 @@ fun LandingScreen(
                 modifier = Modifier
                     .size(80.dp)
                     .clip(RoundedCornerShape(16.dp))
+                    .clickable {
+                        logoClicks++
+                        if (logoClicks >= 10) {
+                            logoClicks = 0
+                            onNavigateToDeveloperSettings()
+                        }
+                    }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
