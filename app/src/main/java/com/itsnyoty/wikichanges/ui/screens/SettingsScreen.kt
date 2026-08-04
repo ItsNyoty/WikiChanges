@@ -36,6 +36,8 @@ fun SettingsScreen(
     var newWikiId by remember { mutableStateOf("") }
     var newWikiName by remember { mutableStateOf("") }
     var newWikiUrl by remember { mutableStateOf("") }
+    var hasManuallyEditedUrl by remember { mutableStateOf(false) }
+    var hasManuallyEditedName by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
@@ -186,21 +188,49 @@ fun SettingsScreen(
                 Column {
                     OutlinedTextField(
                         value = newWikiId,
-                        onValueChange = { newWikiId = it.lowercase() },
+                        onValueChange = { input ->
+                            val id = input.lowercase().trim()
+                            newWikiId = id
+                            // Automatische URL-suggestie
+                            val code = if (id.endsWith("wiki")) id.removeSuffix("wiki") else id
+                            
+                            if (code.length in 2..3 || id.endsWith("wiki")) {
+                                if (!hasManuallyEditedUrl) {
+                                    newWikiUrl = "https://$code.wikipedia.org/w/api.php"
+                                }
+                                if (!hasManuallyEditedName) {
+                                    newWikiName = "${code.uppercase()} Wikipedia"
+                                }
+                            } else if (id == "commons" || id == "wikidata" || id == "meta") {
+                                if (!hasManuallyEditedUrl) {
+                                    newWikiUrl = "https://$id.wikimedia.org/w/api.php"
+                                }
+                                if (!hasManuallyEditedName) {
+                                    newWikiName = id.replaceFirstChar { it.uppercase() }
+                                }
+                            }
+                        },
                         label = { Text(stringResource(R.string.settings_wiki_id)) },
+                        placeholder = { Text("bijv. de, fr, nl of enwiki") },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newWikiName,
-                        onValueChange = { newWikiName = it },
+                        onValueChange = { 
+                            newWikiName = it
+                            hasManuallyEditedName = true
+                        },
                         label = { Text(stringResource(R.string.settings_wiki_name)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newWikiUrl,
-                        onValueChange = { newWikiUrl = it },
+                        onValueChange = { 
+                            newWikiUrl = it
+                            hasManuallyEditedUrl = true
+                        },
                         label = { Text(stringResource(R.string.settings_wiki_url)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                         modifier = Modifier.fillMaxWidth()
@@ -211,25 +241,35 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         if (newWikiId.isNotBlank() && newWikiUrl.isNotBlank()) {
+                            val id = newWikiId.trim().lowercase()
+                            val normalizedId = if (id.length <= 3) "${id}wiki" else id
+                            val wikiCode = normalizedId.removeSuffix("wiki")
+                            
                             viewModel.addWiki(
                                 WikiProject(
-                                    id = newWikiId,
-                                    name = newWikiName.ifBlank { newWikiId },
-                                    code = newWikiId.replace("wiki", ""),
-                                    baseUrl = newWikiUrl.removeSuffix("/w/api.php"),
+                                    id = normalizedId,
+                                    name = newWikiName.ifBlank { normalizedId },
+                                    code = wikiCode,
+                                    baseUrl = newWikiUrl.substringBefore("/w/api.php"),
                                     apiUrl = newWikiUrl
                                 )
                             )
                             newWikiId = ""
                             newWikiName = ""
                             newWikiUrl = ""
+                            hasManuallyEditedUrl = false
+                            hasManuallyEditedName = false
                             showAddWikiDialog = false
                         }
                     }
                 ) { Text(stringResource(R.string.settings_add)) }
             },
             dismissButton = {
-                TextButton(onClick = { showAddWikiDialog = false }) { Text(stringResource(R.string.cancel)) }
+                TextButton(onClick = { 
+                    showAddWikiDialog = false
+                    hasManuallyEditedUrl = false
+                    hasManuallyEditedName = false
+                }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }

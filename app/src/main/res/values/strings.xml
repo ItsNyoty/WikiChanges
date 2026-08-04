@@ -49,6 +49,8 @@
     <string name="action_warning">Send warning</string>
     <string name="action_rollback">Rollback</string>
     <string name="action_block">Block user</string>
+    <string name="action_delete">Delete page</string>
+    <string name="action_open_wiki">Open on Wiki</string>
     <string name="action_diff">Diff</string>
     <string name="choose_action">Choose action</string>
     <string name="no_right_suffix">(no right)</string>
@@ -75,6 +77,7 @@
     <string name="change_rollbacked">Change %1$s rolled back</string>
     <string name="user_warned">User %1$s warned</string>
     <string name="user_blocked">User %1$s blocked</string>
+    <string name="page_deleted">Page %1$s deleted</string>
     <string name="already_patrolled">Change was already patrolled</string>
 
     <!-- Error messages -->
@@ -126,6 +129,7 @@
     <!-- New changes -->
     <string name="new_changes_found">%1$d new changes found</string>
     <string name="scroll_to_top">Show</string>
+    <string name="tag_new_page">NEW</string>
 
     <!-- Landing screen -->
     <string name="landing_subtitle">Review and patrol recent Wikipedia edits</string>

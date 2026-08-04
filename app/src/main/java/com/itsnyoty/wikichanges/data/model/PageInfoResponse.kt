@@ -7,7 +7,7 @@ data class PageInfoResponse(
 )
 
 data class PageInfoQuery(
-    val pages: List<PageDetail>?
+    val pages: Map<String, PageDetail>?
 )
 
 data class PageDetail(

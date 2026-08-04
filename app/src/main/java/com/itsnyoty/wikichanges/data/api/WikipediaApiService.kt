@@ -105,6 +105,18 @@ interface WikipediaApiService {
         @Field("format") format: String = "json"
     ): okhttp3.ResponseBody
 
+    // Delete page
+    @FormUrlEncoded
+    @POST
+    suspend fun deletePage(
+        @Url url: String,
+        @Field("action") action: String = "delete",
+        @Field("title") title: String,
+        @Field("reason") reason: String,
+        @Field("token") token: String,
+        @Field("format") format: String = "json"
+    ): DeleteResponse
+
     // Login
     @FormUrlEncoded
     @POST
@@ -154,9 +166,21 @@ interface WikipediaApiService {
     suspend fun compareRevisions(
         @Url url: String,
         @RetrofitQuery("action") action: String = "compare",
-        @RetrofitQuery("fromrev") fromRev: Long,
+        @RetrofitQuery("fromrev") fromRev: Long? = null,
         @RetrofitQuery("torev") toRev: Long,
         @RetrofitQuery("prop") prop: String = "diff|title|ids",
         @RetrofitQuery("format") format: String = "json"
     ): CompareResponse
+
+    // Get revision content
+    @GET
+    suspend fun getRevisionContent(
+        @Url url: String,
+        @RetrofitQuery("action") action: String = "query",
+        @RetrofitQuery("prop") prop: String = "revisions",
+        @RetrofitQuery("revids") revIds: Long,
+        @RetrofitQuery("rvslots") rvSlots: String = "main",
+        @RetrofitQuery("rvprop") rvProp: String = "content",
+        @RetrofitQuery("format") format: String = "json"
+    ): PageInfoResponse
 }

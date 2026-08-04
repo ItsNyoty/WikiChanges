@@ -49,6 +49,8 @@
     <string name="action_warning">Waarschuwing sturen</string>
     <string name="action_rollback">Terugdraaien</string>
     <string name="action_block">Gebruiker blokkeren</string>
+    <string name="action_delete">Pagina verwijderen</string>
+    <string name="action_open_wiki">Bekijk op Wiki</string>
     <string name="action_diff">Verschil</string>
     <string name="choose_action">Actie kiezen</string>
     <string name="no_right_suffix">(geen recht)</string>
@@ -75,6 +77,7 @@
     <string name="change_rollbacked">Wijziging %1$s teruggedraaid</string>
     <string name="user_warned">Gebruiker %1$s gewaarschuwd</string>
     <string name="user_blocked">Gebruiker %1$s geblokkeerd</string>
+    <string name="page_deleted">Pagina %1$s verwijderd</string>
     <string name="already_patrolled">Wijziging was al gemarkeerd</string>
 
     <!-- Error messages -->
@@ -126,6 +129,7 @@
     <!-- New changes -->
     <string name="new_changes_found">%1$d nieuwe wijzigingen gevonden</string>
     <string name="scroll_to_top">Tonen</string>
+    <string name="tag_new_page">NIEUW</string>
 
     <!-- Landing screen -->
     <string name="landing_subtitle">Controleer en beoordeel recente Wikipedia-bewerkingen</string>

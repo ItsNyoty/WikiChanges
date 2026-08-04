@@ -161,7 +161,19 @@ data class WarningResult(
 )
 
 data class WarningResponse(
-    @SerializedName("warning") val warning: WarningResult
+    @SerializedName("warning") val warning: WarningResult? = null,
+    @SerializedName("error") val error: ApiError? = null
+)
+
+data class DeleteResult(
+    @SerializedName("title") val title: String?,
+    @SerializedName("reason") val reason: String?,
+    @SerializedName("logid") val logId: Long?
+)
+
+data class DeleteResponse(
+    @SerializedName("delete") val delete: DeleteResult?,
+    @SerializedName("error") val error: ApiError? = null
 )
 
 data class LoginResponse(

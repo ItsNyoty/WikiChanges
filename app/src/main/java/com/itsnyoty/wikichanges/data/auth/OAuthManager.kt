@@ -44,7 +44,7 @@ class OAuthManager private constructor(private val context: Context) {
         private const val TOKEN_URL =
             "https://meta.wikimedia.org/w/rest.php/oauth2/access_token"
 
-        private const val SCOPE = "basic editpage createeditmovepage patrol rollback blockusers protect editprotected"
+        private const val SCOPE = "basic editpage createeditmovepage patrol rollback blockusers protect editprotected offline_access"
 
         val REDIRECT_URI: String
             get() = BuildConfig.WIKIMEDIA_OAUTH_REDIRECT_URI
@@ -161,6 +161,60 @@ class OAuthManager private constructor(private val context: Context) {
 
     suspend fun loadTokenIntoMemory() {
         OAuthAccessTokenHolder.token = accessToken.first()
+    }
+
+    suspend fun refreshToken(): String? {
+        val refreshToken = dataStore.data.map { it[Keys.REFRESH_TOKEN] }.first()
+        if (refreshToken.isNullOrBlank()) return null
+
+        return withContext(Dispatchers.IO) {
+            val client = OkHttpClient()
+            val body = FormBody.Builder().apply {
+                add("grant_type", "refresh_token")
+                add("client_id", BuildConfig.WIKIMEDIA_OAUTH_CLIENT_ID)
+                if (BuildConfig.WIKIMEDIA_OAUTH_CLIENT_SECRET.isNotBlank()) {
+                    add("client_secret", BuildConfig.WIKIMEDIA_OAUTH_CLIENT_SECRET)
+                }
+                add("refresh_token", refreshToken)
+            }.build()
+
+            val request = Request.Builder()
+                .url(TOKEN_URL)
+                .post(body)
+                .header(
+                    "User-Agent",
+                    "WikiChanges/${BuildConfig.VERSION_NAME} (Android; ${BuildConfig.APPLICATION_ID}; ${BuildConfig.CONTACT_EMAIL})"
+                )
+                .build()
+
+            try {
+                client.newCall(request).execute().use { response ->
+                    val bodyString = response.body?.string() ?: ""
+                    if (!response.isSuccessful) {
+                        if (response.code == 400 || response.code == 401) {
+                            // Refresh token possibly invalid/expired, clear login
+                            clear()
+                        }
+                        return@withContext null
+                    }
+                    val json = JSONObject(bodyString)
+                    val newAccessToken = json.optString("access_token").takeIf { it.isNotBlank() }
+                    val newRefreshToken = json.optString("refresh_token").takeIf { it.isNotBlank() }
+
+                    if (!newAccessToken.isNullOrBlank()) {
+                        dataStore.edit {
+                            it[Keys.ACCESS_TOKEN] = newAccessToken
+                            if (!newRefreshToken.isNullOrBlank()) it[Keys.REFRESH_TOKEN] = newRefreshToken
+                        }
+                        OAuthAccessTokenHolder.token = newAccessToken
+                        return@withContext newAccessToken
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("OAuthRefreshError", "Fout bij token refresh", e)
+            }
+            null
+        }
     }
 
     private fun generateCodeVerifier(): String {

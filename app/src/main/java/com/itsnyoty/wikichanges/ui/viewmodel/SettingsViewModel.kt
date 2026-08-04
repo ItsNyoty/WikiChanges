@@ -65,9 +65,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun addWiki(wiki: WikiProject) {
+    fun addWiki(wiki: WikiProject, selectImmediately: Boolean = true) {
         viewModelScope.launch {
             repository.addWiki(wiki)
+            if (selectImmediately) {
+                repository.setSelectedWiki(wiki.id)
+            }
             loadSettings()
         }
     }

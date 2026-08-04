@@ -16,7 +16,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 class WikipediaRepository private constructor(private val context: Context) {
 
-    private val apiService = RetrofitClient.createService()
+    private val apiService = RetrofitClient.createService(context)
 
     companion object {
         @Volatile
@@ -103,7 +103,7 @@ class WikipediaRepository private constructor(private val context: Context) {
 
     suspend fun getAllWikis(): List<WikiProject> {
         val savedJson = wikiList.first()
-        return if (savedJson.isNullOrBlank()) {
+        val loadedWikis = if (savedJson.isNullOrBlank()) {
             DefaultWikiProjects
         } else {
             try {
@@ -115,6 +115,14 @@ class WikipediaRepository private constructor(private val context: Context) {
             } catch (e: Exception) {
                 DefaultWikiProjects
             }
+        }
+
+        // Migration: Update default wiki names/URLs if they changed in code
+        return loadedWikis.map { loaded ->
+            DefaultWikiProjects.find { it.id == loaded.id }?.let { default ->
+                // If it's a default wiki, update its name/URL but keep custom fields if any (though currently there aren't many)
+                loaded.copy(name = default.name, apiUrl = default.apiUrl, baseUrl = default.baseUrl)
+            } ?: loaded
         }
     }
 
@@ -210,6 +218,10 @@ class WikipediaRepository private constructor(private val context: Context) {
     }
 
     suspend fun getDiffHtml(wiki: WikiProject, fromRevId: Long, toRevId: Long): String? {
+        if (toRevId == 0L) return null
+        if (fromRevId == 0L) {
+            return getRevisionContentHtml(wiki, toRevId)
+        }
         return try {
             val response = apiService.compareRevisions(
                 url = wiki.apiUrl,
@@ -217,6 +229,34 @@ class WikipediaRepository private constructor(private val context: Context) {
                 toRev = toRevId
             )
             response.compare?.body
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private suspend fun getRevisionContentHtml(wiki: WikiProject, revId: Long): String? {
+        return try {
+            val response = apiService.getRevisionContent(url = wiki.apiUrl, revIds = revId)
+            val content = response.query?.pages?.values?.firstOrNull()?.revisions?.firstOrNull()?.slots?.get("main")?.content
+            if (content != null) {
+                // Simuleer een diff waarbij alles is toegevoegd (4-koloms structuur)
+                val escapedContent = content
+                    .replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                
+                buildString {
+                    append("<tr><td colspan=\"2\" class=\"diff-lineno\"></td><td colspan=\"2\" class=\"diff-lineno\">Regel 1:</td></tr>")
+                    escapedContent.lines().forEach { line ->
+                        append("<tr>")
+                        // Linkerkolom (oud/leeg)
+                        append("<td class=\"diff-marker\"></td><td class=\"diff-context\"></td>")
+                        // Rechterkolom (nieuw/toegevoegd)
+                        append("<td class=\"diff-marker\">+</td><td class=\"diff-addedline\"><div class=\"diff-content\">${line.ifBlank { "&nbsp;" }}</div></td>")
+                        append("</tr>")
+                    }
+                }
+            } else null
         } catch (e: Exception) {
             null
         }
@@ -311,6 +351,23 @@ class WikipediaRepository private constructor(private val context: Context) {
         )
         if (response.error != null) {
             throw Exception(response.error.info ?: response.error.code ?: "Unknown block error")
+        }
+    }
+
+    suspend fun deletePage(
+        wiki: WikiProject,
+        title: String,
+        reason: String,
+        token: String
+    ) {
+        val response = apiService.deletePage(
+            url = wiki.apiUrl,
+            title = title,
+            reason = reason,
+            token = token
+        )
+        if (response.error != null) {
+            throw Exception(response.error.info ?: response.error.code ?: "Unknown delete error")
         }
     }
 

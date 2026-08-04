@@ -51,22 +51,32 @@ class RecentChangesViewModel(application: Application) : AndroidViewModel(applic
     init {
         viewModelScope.launch {
             OAuthManager.getInstance(getApplication()).loadTokenIntoMemory()
-            _wikis.value = repository.getAllWikis()
-            val wiki = repository.getSelectedWikiOrDefault()
-            _selectedWiki.value = wiki
+            
+            // Observeer wikilijst wijzigingen
+            repository.getAllWikisFlow().onEach { wikiList ->
+                _wikis.value = wikiList
+            }.launchIn(this)
+
+            // Observeer geselecteerde wiki wijzigingen
+            repository.selectedWiki.onEach { selectedId ->
+                val wikis = repository.getAllWikis()
+                val wiki = wikis.find { it.id == selectedId } ?: wikis.firstOrNull { it.isDefault } ?: wikis.firstOrNull()
+                if (wiki != null && wiki.id != _selectedWiki.value?.id) {
+                    _selectedWiki.value = wiki
+                    _userRights.value = emptyList()
+                    currentOffset = null
+                    currentChanges = emptyList()
+                    loadRecentChanges()
+                }
+            }.launchIn(this)
+
             _filters.value = repository.getFilters()
-            loadRecentChanges()
         }
     }
 
     fun selectWiki(wiki: WikiProject) {
         viewModelScope.launch {
             repository.setSelectedWiki(wiki.id)
-            _selectedWiki.value = wiki
-            _userRights.value = emptyList()
-            currentOffset = null
-            currentChanges = emptyList()
-            loadRecentChanges()
         }
     }
 
@@ -200,6 +210,15 @@ class RecentChangesViewModel(application: Application) : AndroidViewModel(applic
         _activeDiffChange.value = null
     }
 
+    fun getDiffUrl(change: RecentChange): String {
+        val wiki = selectedWiki.value ?: DefaultWikiProjects.first()
+        return if (change.oldRevid != null && change.oldRevid != 0L) {
+            "${wiki.baseUrl}/w/index.php?diff=${change.oldRevid}"
+        } else {
+            "${wiki.baseUrl}/wiki/${change.title?.replace(" ", "_") ?: ""}"
+        }
+    }
+
     fun navigateToNext() {
         val current = _activeDiffChange.value ?: return
         val list = currentChanges
@@ -284,7 +303,7 @@ class RecentChangesViewModel(application: Application) : AndroidViewModel(applic
                 val tokens = repository.getTokens(wiki)
                 val app = getApplication<Application>()
 
-                if (rollbackToo || action == BadEditAction.ROLLBACK) {
+                if ((rollbackToo || action == BadEditAction.ROLLBACK) && action != BadEditAction.DELETE) {
                     val rbToken = tokens["rollbacktoken"]?.takeIf { it.isNotBlank() }
                         ?: throw Exception(app.getString(R.string.rollback_no_token))
                     repository.performRollback(
@@ -327,6 +346,16 @@ class RecentChangesViewModel(application: Application) : AndroidViewModel(applic
                             _actionState.value = UiState.Success(app.getString(R.string.change_rollbacked, change.title ?: ""))
                         }
                     }
+                    BadEditAction.DELETE -> {
+                        val token = csrfToken ?: throw Exception(app.getString(R.string.csrf_no_token))
+                        repository.deletePage(
+                            wiki = wiki,
+                            title = change.title ?: "",
+                            reason = reason.ifBlank { "Vandalism/unsuitable content (WikiChanges)" },
+                            token = token
+                        )
+                        _actionState.value = UiState.Success(app.getString(R.string.page_deleted, change.title ?: ""))
+                    }
                 }
                 refresh()
             } catch (e: Exception) {
@@ -350,5 +379,6 @@ class RecentChangesViewModel(application: Application) : AndroidViewModel(applic
 enum class BadEditAction {
     ROLLBACK,
     WARNING,
-    BLOCK
+    BLOCK,
+    DELETE
 }

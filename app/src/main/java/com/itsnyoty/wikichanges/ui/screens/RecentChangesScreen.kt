@@ -1,8 +1,10 @@
 package com.itsnyoty.wikichanges.ui.screens
 
 import android.webkit.WebView
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -27,6 +29,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -221,7 +224,12 @@ fun RecentChangesScreen(
                             listState = listState,
                             onGood = { viewModel.markAsGood(it) },
                             onBad = { change, _, _ -> showBadBottomSheet = change },
-                            onViewDiff = { change -> viewModel.loadDiff(change) }
+                            onViewDiff = { change -> viewModel.loadDiff(change) },
+                            onOpenWiki = { change ->
+                                val url = viewModel.getDiffUrl(change)
+                                val intent = CustomTabsIntent.Builder().build()
+                                intent.launchUrl(context, android.net.Uri.parse(url))
+                            }
                         )
                     }
                 }
@@ -241,7 +249,12 @@ fun RecentChangesScreen(
                 onNext = { viewModel.navigateToNext() },
                 onPrevious = { viewModel.navigateToPrevious() },
                 onDismiss = { viewModel.clearDiffState() },
-                onClearAction = { viewModel.clearActionState() }
+                onClearAction = { viewModel.clearActionState() },
+                onOpenWiki = {
+                    val url = viewModel.getDiffUrl(change)
+                    val intent = CustomTabsIntent.Builder().build()
+                    intent.launchUrl(context, android.net.Uri.parse(url))
+                }
             )
         }
     }
@@ -535,7 +548,8 @@ private fun RecentChangesList(
     listState: LazyListState,
     onGood: (RecentChange) -> Unit,
     onBad: (RecentChange, BadEditAction, String) -> Unit,
-    onViewDiff: (RecentChange) -> Unit
+    onViewDiff: (RecentChange) -> Unit,
+    onOpenWiki: (RecentChange) -> Unit
 ) {
     LazyColumn(state = listState) {
         items(changes, key = { "${it.id}_${it.timestamp}" }) { change ->
@@ -544,7 +558,8 @@ private fun RecentChangesList(
                 userRights = userRights,
                 onGood = onGood,
                 onBad = onBad,
-                onViewDiff = onViewDiff
+                onViewDiff = onViewDiff,
+                onOpenWiki = onOpenWiki
             )
         }
     }
@@ -557,7 +572,8 @@ private fun ChangeCard(
     userRights: List<String>,
     onGood: (RecentChange) -> Unit,
     onBad: (RecentChange, BadEditAction, String) -> Unit,
-    onViewDiff: (RecentChange) -> Unit
+    onViewDiff: (RecentChange) -> Unit,
+    onOpenWiki: (RecentChange) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -606,12 +622,35 @@ private fun ChangeCard(
                     )
                 }
 
+                if (change.type == "new") {
+                    Surface(
+                        color = WikiGreen.copy(alpha = 0.1f),
+                        contentColor = WikiGreen,
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.tag_new_page),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
                 if (byteDiff != null) {
                     Text(
                         text = if (byteDiff > 0) "+${byteDiff}" else byteDiff.toString(),
                         color = diffColor,
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
+
+                IconButton(onClick = { onOpenWiki(change) }) {
+                    Icon(
+                        imageVector = Icons.Default.OpenInNew,
+                        contentDescription = stringResource(R.string.action_open_wiki)
                     )
                 }
 
@@ -674,7 +713,8 @@ private fun DiffDialog(
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onDismiss: () -> Unit,
-    onClearAction: () -> Unit = {}
+    onClearAction: () -> Unit = {},
+    onOpenWiki: () -> Unit
 ) {
     val canPatrol = userRights.contains("patrol")
     val canRollback = userRights.contains("rollback")
@@ -740,6 +780,9 @@ private fun DiffDialog(
                             )
                             IconButton(onClick = onNext) {
                                 Icon(Icons.Default.ArrowForwardIos, contentDescription = "Volgend")
+                            }
+                            IconButton(onClick = onOpenWiki) {
+                                Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.action_open_wiki))
                             }
                             IconButton(onClick = onDismiss) {
                                 Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
@@ -919,11 +962,18 @@ private fun BadActionBottomSheet(
                             enabled = userRights.contains("block"),
                             onClick = { selectedAction = BadEditAction.BLOCK }
                         )
+                        ActionItem(
+                            title = stringResource(R.string.action_delete),
+                            icon = Icons.Default.Delete,
+                            enabled = userRights.contains("delete"),
+                            onClick = { selectedAction = BadEditAction.DELETE }
+                        )
                     } else {
                         Text(
                             text = when(selectedAction) {
                                 BadEditAction.WARNING -> stringResource(R.string.action_warning)
                                 BadEditAction.BLOCK -> stringResource(R.string.action_block)
+                                BadEditAction.DELETE -> stringResource(R.string.action_delete)
                                 else -> ""
                             },
                             style = MaterialTheme.typography.titleLarge
@@ -956,10 +1006,12 @@ private fun BadActionBottomSheet(
                             }
                         }
                         
-                        Spacer(Modifier.height(12.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = rollbackToo, onCheckedChange = { rollbackToo = it })
-                            Text(stringResource(R.string.rollback_also_label), style = MaterialTheme.typography.bodyMedium)
+                        if (selectedAction != BadEditAction.DELETE) {
+                            Spacer(Modifier.height(12.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(checked = rollbackToo, onCheckedChange = { rollbackToo = it })
+                                Text(stringResource(R.string.rollback_also_label), style = MaterialTheme.typography.bodyMedium)
+                            }
                         }
                         
                         Spacer(Modifier.height(24.dp))

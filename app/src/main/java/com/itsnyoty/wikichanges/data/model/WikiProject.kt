@@ -13,7 +13,7 @@ data class WikiProject(
 val DefaultWikiProjects = listOf(
     WikiProject(
         id = "nlwiki",
-        name = "Nederlandstalig Wikipedia",
+        name = "Nederlandstalige Wikipedia",
         code = "nl",
         baseUrl = "https://nl.wikipedia.org",
         apiUrl = "https://nl.wikipedia.org/w/api.php",
