@@ -6,6 +6,7 @@ data class RecentChangesFilters(
     val onlyUnpatrolled: Boolean = false,
     val hideNewPages: Boolean = false,
     val hideMinor: Boolean = false,
+    val hideExtendedConfirmed: Boolean = false,
     val namespace: String = "",
     val limit: Int = 100,
     val sortNewestFirst: Boolean = true,

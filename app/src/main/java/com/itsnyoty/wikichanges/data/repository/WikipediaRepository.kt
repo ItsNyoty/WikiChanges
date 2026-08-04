@@ -3,6 +3,7 @@ package com.itsnyoty.wikichanges.data.repository
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -34,9 +35,17 @@ class WikipediaRepository private constructor(private val context: Context) {
         val WIKI_LIST = stringPreferencesKey("wiki_list")
         val USERNAME = stringPreferencesKey("username")
         val FILTERS = stringPreferencesKey("recent_changes_filters")
+        val DISCLAIMER_ACCEPTED = booleanPreferencesKey("disclaimer_accepted")
     }
 
     private val gson = com.google.gson.Gson()
+
+    val isDisclaimerAccepted: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.DISCLAIMER_ACCEPTED] ?: false }
+
+    suspend fun setDisclaimerAccepted() {
+        context.dataStore.edit { it[PreferencesKeys.DISCLAIMER_ACCEPTED] = true }
+    }
 
     val selectedWiki: Flow<String?> = context.dataStore.data
         .map { preferences ->
@@ -200,7 +209,53 @@ class WikipediaRepository private constructor(private val context: Context) {
             curtimestamp = if (start == null) "1" else "0"
         )
 
-        return response.query.recentChanges
+        val changes = response.query.recentChanges
+        
+        // Optioneel: filter op user groups (zoals extendedconfirmed)
+        if (filters.hideExtendedConfirmed && changes.isNotEmpty()) {
+            val users = changes.mapNotNull { it.user }.distinct()
+            // Batch users (MediaWiki limit is 50)
+            val groupsMap = mutableMapOf<String, List<String>>()
+            
+            users.chunked(50).forEach { batch ->
+                try {
+                    val usersString = batch.joinToString("|")
+                    val groupsResponse = apiService.getUsersGroups(url = wiki.apiUrl, users = usersString)
+                    groupsResponse.query?.users?.forEach { userDetail ->
+                        if (userDetail.name != null && userDetail.groups != null) {
+                            groupsMap[userDetail.name] = userDetail.groups
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Fout negeren
+                }
+            }
+            
+            return changes.filter { change ->
+                val groups = groupsMap[change.user] ?: emptyList()
+                !groups.contains("extendedconfirmed")
+            }.map { it.copy(userGroups = groupsMap[it.user]) }
+        }
+
+        return changes
+    }
+
+    suspend fun getUsersGroups(wiki: WikiProject, users: List<String>): Map<String, List<String>> {
+        val groupsMap = mutableMapOf<String, List<String>>()
+        users.chunked(50).forEach { batch ->
+            try {
+                val usersString = batch.joinToString("|")
+                val response = apiService.getUsersGroups(url = wiki.apiUrl, users = usersString)
+                response.query?.users?.forEach { userDetail ->
+                    if (userDetail.name != null && userDetail.groups != null) {
+                        groupsMap[userDetail.name] = userDetail.groups
+                    }
+                }
+            } catch (e: Exception) {
+                // Fout negeren
+            }
+        }
+        return groupsMap
     }
 
     suspend fun getTokens(wiki: WikiProject): Map<String, String> {
@@ -295,13 +350,23 @@ class WikipediaRepository private constructor(private val context: Context) {
     suspend fun warnUser(
         wiki: WikiProject,
         user: String,
-        warningTemplate: String,
+        templateName: String?,
+        customMessage: String?,
         reason: String,
         token: String
     ) {
         val userTalkPage = "User_talk:${(user ?: "").replace(" ", "_")}"
-        val template = wiki.warningTemplate ?: warningTemplate
-        val text = "{{subst:${template}|${titleToSubject(wiki, reason)}}} ~~~~"
+        
+        val text = buildString {
+            if (!templateName.isNullOrBlank()) {
+                append("{{subst:${templateName}|${titleToSubject(wiki, reason)}}}")
+            }
+            if (!customMessage.isNullOrBlank()) {
+                if (isNotEmpty()) append("\n\n")
+                append(customMessage)
+            }
+            append(" ~~~~")
+        }
 
         apiService.warnUser(
             url = wiki.apiUrl,

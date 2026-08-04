@@ -5,8 +5,8 @@ import android.os.Bundle
 import android.util.Log
 import android.view.animation.AnticipateInterpolator
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -20,7 +20,7 @@ import com.itsnyoty.wikichanges.ui.theme.WikiChangesTheme
 import kotlinx.coroutines.launch
 
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)

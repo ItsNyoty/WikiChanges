@@ -288,7 +288,9 @@ class RecentChangesViewModel(application: Application) : AndroidViewModel(applic
         action: BadEditAction,
         reason: String,
         rollbackToo: Boolean = false,
-        expiry: String = "1 week"
+        expiry: String = "1 week",
+        warningTemplate: String? = null,
+        customMessage: String? = null
     ) {
         viewModelScope.launch {
             if (com.itsnyoty.wikichanges.data.model.DebugSettings.isDryModeEnabled.value) {
@@ -324,7 +326,8 @@ class RecentChangesViewModel(application: Application) : AndroidViewModel(applic
                         repository.warnUser(
                             wiki = wiki,
                             user = change.user ?: "",
-                            warningTemplate = wiki.warningTemplate ?: "Warning",
+                            templateName = warningTemplate ?: wiki.warningTemplate,
+                            customMessage = customMessage,
                             reason = reason.ifBlank { change.title ?: "" },
                             token = token
                         )

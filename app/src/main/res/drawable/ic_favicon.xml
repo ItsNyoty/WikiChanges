@@ -42,14 +42,6 @@
         android:strokeLineCap="round"
         android:pathData="M47.25,97.875Q67.5,104.625 87.75,94.5" />
 
-    <!-- Sparkles -->
-    <path
-        android:fillColor="#64B5F6"
-        android:pathData="M77.625,57.375Q84.375,57.375 84.375,50.625Q84.375,57.375 91.125,57.375Q84.375,57.375 84.375,64.125Q84.375,57.375 77.625,57.375Z" />
-    <path
-        android:fillColor="#64B5F6"
-        android:pathData="M89.4375,47.25Q94.5,47.25 94.5,42.1875Q94.5,47.25 99.5625,47.25Q94.5,47.25 94.5,52.3125Q94.5,47.25 89.4375,47.25Z" />
-
     <!-- Stick -->
     <path
         android:strokeColor="#616161"

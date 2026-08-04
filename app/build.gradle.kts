@@ -11,8 +11,8 @@ android {
         applicationId = "com.itsnyoty.wikichanges"
         minSdk = 24
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -22,13 +22,12 @@ android {
         buildConfigField(
             "String",
             "WIKIMEDIA_OAUTH_CLIENT_ID",
-            "\"74def20329082da56d7a56552a02890d\""
+            "\"8e3defad157935d6dd7ac1ca9905476f\""
         )
-        // Public client: geen client_secret nodig; we gebruiken PKCE
         buildConfigField(
             "String",
             "WIKIMEDIA_OAUTH_CLIENT_SECRET",
-            "\"\""
+            "\"f6dc14d759accaf15ecb837f315658880126eccb\""
         )
         buildConfigField(
             "String",
@@ -75,6 +74,7 @@ android {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation(platform("androidx.compose:compose-bom:2024.06.00"))

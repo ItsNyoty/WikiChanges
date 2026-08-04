@@ -275,10 +275,18 @@ fun RecentChangesScreen(
 
     showBadBottomSheet?.let { change ->
         BadActionBottomSheet(
-            change = change,
             userRights = userRights,
-            onAction = { action, reason, rb, expiry ->
-                viewModel.performBadAction(change, action, reason, rb, expiry)
+            warningTemplates = selectedWiki?.warningTemplates ?: emptyMap(),
+            onAction = { action, reason, rb, expiry, template, message ->
+                viewModel.performBadAction(
+                    change = change,
+                    action = action,
+                    reason = reason,
+                    rollbackToo = rb,
+                    expiry = expiry,
+                    warningTemplate = template,
+                    customMessage = message
+                )
                 showBadBottomSheet = null
             },
             onDismiss = { showBadBottomSheet = null }
@@ -342,6 +350,11 @@ private fun FilterSheetContent(
                 selected = filters.hideMinor,
                 onClick = { onFilterChange(filters.copy(hideMinor = !filters.hideMinor)) },
                 label = { Text(stringResource(R.string.filter_hide_minor)) }
+            )
+            FilterChip(
+                selected = filters.hideExtendedConfirmed,
+                onClick = { onFilterChange(filters.copy(hideExtendedConfirmed = !filters.hideExtendedConfirmed)) },
+                label = { Text(stringResource(R.string.filter_hide_extended_confirmed)) }
             )
             FilterChip(
                 selected = filters.autoShowNewChanges,
@@ -902,15 +915,34 @@ private fun DiffDialog(
 
 @Composable
 private fun BadActionBottomSheet(
-    change: RecentChange,
     userRights: List<String>,
-    onAction: (BadEditAction, String, Boolean, String) -> Unit,
+    warningTemplates: Map<String, String>,
+    onAction: (BadEditAction, String, Boolean, String, String?, String?) -> Unit,
     onDismiss: () -> Unit
 ) {
     var selectedAction by remember { mutableStateOf<BadEditAction?>(null) }
     var reason by remember { mutableStateOf("") }
     var rollbackToo by remember { mutableStateOf(true) }
     var expiry by remember { mutableStateOf("1 week") }
+    
+    // Waarschuwing specifieke velden
+    var selectedWarningType by remember { mutableStateOf("vandalism") }
+    var customWarningMessage by remember { mutableStateOf("") }
+    var expandedWarningMenu by remember { mutableStateOf(false) }
+
+    val warningOptions = listOf(
+        "vandalism" to stringResource(R.string.warning_vandalism),
+        "nonsense" to stringResource(R.string.warning_nonsense),
+        "spam" to stringResource(R.string.warning_spam),
+        "blanking" to stringResource(R.string.warning_blanking),
+        "bullying" to stringResource(R.string.warning_bullying),
+        "editwar" to stringResource(R.string.warning_editwar),
+        "blp" to stringResource(R.string.warning_blp),
+        "copyvio" to stringResource(R.string.warning_copyvio),
+        "disruption" to stringResource(R.string.warning_disruption),
+        "attack" to stringResource(R.string.warning_attack),
+        "custom" to stringResource(R.string.warning_custom)
+    )
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -948,7 +980,7 @@ private fun BadActionBottomSheet(
                             title = stringResource(R.string.action_rollback),
                             icon = Icons.Default.History,
                             enabled = userRights.contains("rollback"),
-                            onClick = { onAction(BadEditAction.ROLLBACK, "", false, "") }
+                            onClick = { onAction(BadEditAction.ROLLBACK, "", false, "", null, null) }
                         )
                         ActionItem(
                             title = stringResource(R.string.action_warning),
@@ -980,12 +1012,55 @@ private fun BadActionBottomSheet(
                         )
                         Spacer(Modifier.height(16.dp))
                         
-                        OutlinedTextField(
-                            value = reason,
-                            onValueChange = { reason = it },
-                            label = { Text(stringResource(R.string.reason_placeholder)) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        if (selectedAction == BadEditAction.WARNING) {
+                            // Dropdown voor type waarschuwing
+                            @OptIn(ExperimentalMaterial3Api::class)
+                            ExposedDropdownMenuBox(
+                                expanded = expandedWarningMenu,
+                                onExpandedChange = { expandedWarningMenu = it },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                OutlinedTextField(
+                                    value = warningOptions.find { it.first == selectedWarningType }?.second ?: "",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text(stringResource(R.string.warning_type_label)) },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedWarningMenu) },
+                                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = expandedWarningMenu,
+                                    onDismissRequest = { expandedWarningMenu = false }
+                                ) {
+                                    warningOptions.forEach { (type, label) ->
+                                        DropdownMenuItem(
+                                            text = { Text(label) },
+                                            onClick = {
+                                                selectedWarningType = type
+                                                expandedWarningMenu = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            Spacer(Modifier.height(12.dp))
+                            
+                            OutlinedTextField(
+                                value = customWarningMessage,
+                                onValueChange = { customWarningMessage = it },
+                                label = { Text(stringResource(R.string.custom_message_label)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 2
+                            )
+                        } else {
+                            OutlinedTextField(
+                                value = reason,
+                                onValueChange = { reason = it },
+                                label = { Text(stringResource(R.string.reason_placeholder)) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                         
                         if (selectedAction == BadEditAction.BLOCK) {
                             Spacer(Modifier.height(12.dp))
@@ -1016,7 +1091,17 @@ private fun BadActionBottomSheet(
                         
                         Spacer(Modifier.height(24.dp))
                         Button(
-                            onClick = { onAction(selectedAction!!, reason, rollbackToo, expiry) },
+                            onClick = { 
+                                val template = if (selectedWarningType == "custom") null else warningTemplates[selectedWarningType]
+                                onAction(
+                                    selectedAction!!, 
+                                    reason, 
+                                    rollbackToo, 
+                                    expiry, 
+                                    template, 
+                                    customWarningMessage.takeIf { it.isNotBlank() }
+                                ) 
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = WikiRed)
                         ) {
@@ -1035,6 +1120,7 @@ private fun BadActionBottomSheet(
         }
     }
 }
+
 
 @Composable
 private fun ActionItem(

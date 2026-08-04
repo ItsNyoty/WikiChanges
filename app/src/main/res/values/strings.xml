@@ -31,6 +31,7 @@
     <string name="filter_only_unpatrolled">Only unpatrolled</string>
     <string name="filter_hide_new_pages">Hide new pages</string>
     <string name="filter_hide_minor">Hide minor edits</string>
+    <string name="filter_hide_extended_confirmed">Not extended confirmed only</string>
     <string name="filter_namespace">Namespace</string>
     <string name="filter_sort">Sort</string>
     <string name="filter_sort_newest">Newest first</string>
@@ -59,6 +60,19 @@
     <string name="reason_placeholder">Reason / note</string>
     <string name="reason_rollback">Rollback reason</string>
     <string name="reason_warning">Warning template option</string>
+    <string name="warning_type_label">Warning type</string>
+    <string name="custom_message_label">Custom message (optional)</string>
+    <string name="warning_vandalism">Vandalism</string>
+    <string name="warning_nonsense">Nonsense / Test</string>
+    <string name="warning_spam">Spam / Advertising</string>
+    <string name="warning_blanking">Blanking / Removal</string>
+    <string name="warning_bullying">Bullying / Harassment</string>
+    <string name="warning_editwar">Edit warring</string>
+    <string name="warning_blp">Biographies of living persons</string>
+    <string name="warning_copyvio">Copyright violation</string>
+    <string name="warning_disruption">Disruptive editing</string>
+    <string name="warning_attack">Personal attack</string>
+    <string name="warning_custom">Custom message only</string>
     <string name="reason_block">Block reason</string>
 
     <!-- Diff -->
@@ -139,4 +153,23 @@
     <string name="login_error_prefix">Could not open login screen: %1$s</string>
     <string name="block_duration_label">Block duration</string>
     <string name="rollback_also_label">Also rollback changes</string>
+    <string name="roles_label">Roles: %1$s</string>
+    <string name="warnings_count_label">%1$d warnings configured</string>
+    <string name="app_language_label">App language</string>
+    <string name="language_en">English</string>
+    <string name="language_nl">Dutch</string>
+    <string name="language_system">System default</string>
+
+    <!-- Wiki edit dialog -->
+    <string name="wiki_settings_title">Wiki settings</string>
+    <string name="warning_template_legacy">Default template (legacy)</string>
+    <string name="template_name_label">Template name</string>
+    <string name="template_hint">e.g. \'Warning\' or \'uw-vandalism\'</string>
+    <string name="specific_warnings_title">Specific warnings</string>
+    <string name="save">Save</string>
+
+    <!-- First launch disclaimer -->
+    <string name="disclaimer_title">Legal Disclaimer</string>
+    <string name="disclaimer_text">You take full responsibility for any actions taken using WikiChanges. You must read and abide by all relevant Wikipedia policies when using this tool; failure to do so may result in being blocked from editing.</string>
+    <string name="disclaimer_agree">I Agree</string>
 </resources>

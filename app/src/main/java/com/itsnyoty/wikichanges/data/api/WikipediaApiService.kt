@@ -183,4 +183,15 @@ interface WikipediaApiService {
         @RetrofitQuery("rvprop") rvProp: String = "content",
         @RetrofitQuery("format") format: String = "json"
     ): PageInfoResponse
+
+    // Get user groups for a list of users
+    @GET
+    suspend fun getUsersGroups(
+        @Url url: String,
+        @RetrofitQuery("action") action: String = "query",
+        @RetrofitQuery("list") list: String = "users",
+        @RetrofitQuery("ususers") users: String,
+        @RetrofitQuery("usprop") prop: String = "groups",
+        @RetrofitQuery("format") format: String = "json"
+    ): UsersGroupsResponse
 }

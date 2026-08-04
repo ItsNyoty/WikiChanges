@@ -44,7 +44,7 @@ class OAuthManager private constructor(private val context: Context) {
         private const val TOKEN_URL =
             "https://meta.wikimedia.org/w/rest.php/oauth2/access_token"
 
-        private const val SCOPE = "basic editpage createeditmovepage patrol rollback blockusers protect editprotected offline_access"
+        private const val SCOPE = "basic editpage createeditmovepage patrol rollback blockusers protect editprotected"
 
         val REDIRECT_URI: String
             get() = BuildConfig.WIKIMEDIA_OAUTH_REDIRECT_URI

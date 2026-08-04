@@ -92,6 +92,16 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun updateWikiWarningTemplates(wikiId: String, templates: Map<String, String>) {
+        viewModelScope.launch {
+            val wikis = repository.getAllWikis().map {
+                if (it.id == wikiId) it.copy(warningTemplates = templates) else it
+            }
+            repository.saveWikiList(wikis)
+            loadSettings()
+        }
+    }
+
     fun logout(onResult: (UiState<String>) -> Unit = {}) {
         viewModelScope.launch {
             try {

@@ -71,6 +71,56 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(16.dp))
+                
+                // Language selector
+                Text(stringResource(R.string.app_language_label), style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
+                
+                var expandedLanguage by remember { mutableStateOf(false) }
+                val currentLocale = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales().toLanguageTags()
+                val languageOptions = listOf(
+                    "" to stringResource(R.string.language_system),
+                    "en" to stringResource(R.string.language_en),
+                    "nl" to stringResource(R.string.language_nl)
+                )
+                val currentLabel = languageOptions.find { it.first == currentLocale }?.second ?: languageOptions.first().second
+
+                ExposedDropdownMenuBox(
+                    expanded = expandedLanguage,
+                    onExpandedChange = { expandedLanguage = it },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = currentLabel,
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedLanguage) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedLanguage,
+                        onDismissRequest = { expandedLanguage = false }
+                    ) {
+                        languageOptions.forEach { (code, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    val appLocale: androidx.core.os.LocaleListCompat = if (code.isEmpty()) {
+                                        androidx.core.os.LocaleListCompat.getEmptyLocaleList()
+                                    } else {
+                                        androidx.core.os.LocaleListCompat.forLanguageTags(code)
+                                    }
+                                    androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(appLocale)
+                                    expandedLanguage = false
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(Modifier.height(24.dp))
+                Divider()
+                Spacer(Modifier.height(16.dp))
             }
 
             items(uiState.wikis) { wiki ->
@@ -80,7 +130,8 @@ fun SettingsScreen(
                     roles = uiState.wikiRoles[wiki.id] ?: emptyList(),
                     canDelete = !wiki.isDefault,
                     onDelete = { viewModel.removeWiki(wiki.id) },
-                    onUpdateTemplate = { viewModel.updateWikiWarningTemplate(wiki.id, it) }
+                    onUpdateTemplate = { viewModel.updateWikiWarningTemplate(wiki.id, it) },
+                    onUpdateTemplates = { viewModel.updateWikiWarningTemplates(wiki.id, it) }
                 )
             }
 
@@ -251,7 +302,8 @@ fun SettingsScreen(
                                     name = newWikiName.ifBlank { normalizedId },
                                     code = wikiCode,
                                     baseUrl = newWikiUrl.substringBefore("/w/api.php"),
-                                    apiUrl = newWikiUrl
+                                    apiUrl = newWikiUrl,
+                                    warningTemplates = com.itsnyoty.wikichanges.data.model.getDefaultTemplatesForCode(wikiCode)
                                 )
                             )
                             newWikiId = ""
@@ -282,10 +334,25 @@ private fun WikiItem(
     roles: List<String>,
     canDelete: Boolean,
     onDelete: () -> Unit,
-    onUpdateTemplate: (String) -> Unit
+    onUpdateTemplate: (String) -> Unit,
+    onUpdateTemplates: (Map<String, String>) -> Unit
 ) {
     var showEditDialog by remember { mutableStateOf(false) }
     var tempTemplate by remember { mutableStateOf(wiki.warningTemplate ?: "") }
+    var tempTemplates by remember { mutableStateOf(wiki.warningTemplates) }
+
+    val warningOptions = listOf(
+        "vandalism" to stringResource(R.string.warning_vandalism),
+        "nonsense" to stringResource(R.string.warning_nonsense),
+        "spam" to stringResource(R.string.warning_spam),
+        "blanking" to stringResource(R.string.warning_blanking),
+        "bullying" to stringResource(R.string.warning_bullying),
+        "editwar" to stringResource(R.string.warning_editwar),
+        "blp" to stringResource(R.string.warning_blp),
+        "copyvio" to stringResource(R.string.warning_copyvio),
+        "disruption" to stringResource(R.string.warning_disruption),
+        "attack" to stringResource(R.string.warning_attack)
+    )
 
     Card(
         modifier = Modifier
@@ -311,19 +378,17 @@ private fun WikiItem(
                 
                 if (roles.isNotEmpty()) {
                     Text(
-                        "Rollen: ${roles.joinToString()}",
+                        stringResource(R.string.roles_label, roles.joinToString()),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
                 }
 
-                if (wiki.warningTemplate != null) {
-                    Text(
-                        "Template: ${wiki.warningTemplate}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    stringResource(R.string.warnings_count_label, wiki.warningTemplates.size),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
                 if (wiki.isDefault) {
                     Text(
@@ -344,28 +409,48 @@ private fun WikiItem(
     if (showEditDialog) {
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
-            title = { Text("Wiki instellingen") },
+            title = { Text(stringResource(R.string.wiki_settings_title)) },
             text = {
-                Column {
-                    Text("Waarschuwingstemplate", style = MaterialTheme.typography.labelMedium)
-                    OutlinedTextField(
-                        value = tempTemplate,
-                        onValueChange = { tempTemplate = it },
-                        label = { Text("Template naam") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text("Bijv: 'Waarschuwing' of 'uw-vandalism'", style = MaterialTheme.typography.bodySmall)
+                LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
+                    item {
+                        Text(stringResource(R.string.warning_template_legacy), style = MaterialTheme.typography.labelMedium)
+                        OutlinedTextField(
+                            value = tempTemplate,
+                            onValueChange = { tempTemplate = it },
+                            label = { Text(stringResource(R.string.template_name_label)) },
+                            placeholder = { Text(stringResource(R.string.template_hint)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text(stringResource(R.string.specific_warnings_title), style = MaterialTheme.typography.titleSmall)
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    
+                    items(warningOptions) { (key, label) ->
+                        OutlinedTextField(
+                            value = tempTemplates[key] ?: "",
+                            onValueChange = { 
+                                val newMap = tempTemplates.toMutableMap()
+                                newMap[key] = it
+                                tempTemplates = newMap
+                            },
+                            label = { Text(label) },
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            singleLine = true
+                        )
+                    }
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
                     onUpdateTemplate(tempTemplate)
+                    onUpdateTemplates(tempTemplates)
                     showEditDialog = false
-                }) { Text("Opslaan") }
+                }) { Text(stringResource(R.string.save)) }
             },
             dismissButton = {
-                TextButton(onClick = { showEditDialog = false }) { Text("Annuleren") }
+                TextButton(onClick = { showEditDialog = false }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }

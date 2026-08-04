@@ -20,7 +20,8 @@ data class RecentChange(
     @SerializedName("bot") val bot: String? = null,
     @SerializedName("minor") val minor: String? = null,
     @SerializedName("parsedcomment") val parsedComment: String? = null,
-    @SerializedName("sizediff") val sizeDiff: Int? = null
+    @SerializedName("sizediff") val sizeDiff: Int? = null,
+    val userGroups: List<String>? = null
 )
 
 data class CompareResponse(
@@ -217,4 +218,17 @@ data class CurrentUserInfo(
     @SerializedName("blockedby") val blockedBy: String?,
     @SerializedName("blockedbyid") val blockedById: Long?,
     @SerializedName("blockreason") val blockReason: String?
+)
+
+data class UsersGroupsResponse(
+    @SerializedName("query") val query: UsersGroupsQuery?
+)
+
+data class UsersGroupsQuery(
+    @SerializedName("users") val users: List<UserGroupsDetail>?
+)
+
+data class UserGroupsDetail(
+    @SerializedName("name") val name: String?,
+    @SerializedName("groups") val groups: List<String>?
 )

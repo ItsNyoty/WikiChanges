@@ -31,6 +31,7 @@
     <string name="filter_only_unpatrolled">Alleen ongecontroleerd</string>
     <string name="filter_hide_new_pages">Verberg nieuwe pagina\'s</string>
     <string name="filter_hide_minor">Verberg kleine bewerkingen</string>
+    <string name="filter_hide_extended_confirmed">Alleen niet-extended confirmed</string>
     <string name="filter_namespace">Naamruimte</string>
     <string name="filter_sort">Sorteer</string>
     <string name="filter_sort_newest">Nieuwste eerst</string>
@@ -59,6 +60,19 @@
     <string name="reason_placeholder">Reden / opmerking</string>
     <string name="reason_rollback">Reden voor terugdraaien</string>
     <string name="reason_warning">Waarschuwingstemplate kiezen</string>
+    <string name="warning_type_label">Type waarschuwing</string>
+    <string name="custom_message_label">Eigen bericht (optioneel)</string>
+    <string name="warning_vandalism">Vandalisme</string>
+    <string name="warning_nonsense">Aanmaken onzinpagina</string>
+    <string name="warning_spam">Reclame / Spam</string>
+    <string name="warning_blanking">Leeghalen</string>
+    <string name="warning_bullying">Cyberpesten</string>
+    <string name="warning_editwar">Bewerkingsfout / BWO</string>
+    <string name="warning_blp">Biografie\u00ebn van levende personen</string>
+    <string name="warning_copyvio">Auteursrechtenschending</string>
+    <string name="warning_disruption">Verstoring</string>
+    <string name="warning_attack">Persoonlijke aanval</string>
+    <string name="warning_custom">Alleen eigen bericht</string>
     <string name="reason_block">Reden voor blokkade</string>
 
     <!-- Diff -->
@@ -139,4 +153,23 @@
     <string name="login_error_prefix">Kon inlogscherm openen: %1$s</string>
     <string name="block_duration_label">Duur van blokkade</string>
     <string name="rollback_also_label">Ook wijzigingen terugdraaien</string>
+    <string name="roles_label">Rollen: %1$s</string>
+    <string name="warnings_count_label">%1$d waarschuwingen ingesteld</string>
+    <string name="app_language_label">App-taal</string>
+    <string name="language_en">Engels</string>
+    <string name="language_nl">Nederlands</string>
+    <string name="language_system">Systeemtaal</string>
+
+    <!-- Wiki edit dialog -->
+    <string name="wiki_settings_title">Wiki-instellingen</string>
+    <string name="warning_template_legacy">Standaard template (legacy)</string>
+    <string name="template_name_label">Template-naam</string>
+    <string name="template_hint">bijv. \'Waarschuwing\' of \'uw-vandalism\'</string>
+    <string name="specific_warnings_title">Specifieke waarschuwingen</string>
+    <string name="save">Opslaan</string>
+
+    <!-- First launch disclaimer -->
+    <string name="disclaimer_title">Juridische Disclaimer</string>
+    <string name="disclaimer_text">Je draagt de volledige verantwoordelijkheid voor alle acties die je uitvoert met WikiChanges. Je moet alle relevante Wikipedia-richtlijnen lezen en naleven bij het gebruik van deze tool; als je dit niet doet, kan dit leiden tot een blokkade.</string>
+    <string name="disclaimer_agree">Ik begrijp het</string>
 </resources>
